@@ -1,0 +1,39 @@
+name: Home Prices Scraper
+
+on:
+  schedule:
+    - cron: '17 2 * * *'     # 每天北京时间 10:17（统计局一般 9:30 发布）
+  workflow_dispatch:          # 支持手动触发
+  push:
+    branches: [main]
+    paths: ['scraper.py', '.github/workflows/scrape.yml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run scraper
+        run: python scraper.py
+      - name: Commit data.json
+        # data.json 里的 updated 每次都变，所以每次运行都会提交，仓库保持活跃、定时任务不会被停用
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          git diff --cached --quiet || git commit -m "data: update $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')"
+          git pull --rebase
+          git push

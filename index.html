@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<!-- Created by 青云 on 2026/10/21. -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark light">
+  <title>70 城房价 · Home Prices</title>
+  <meta name="description" content="国家统计局 70 个大中城市新建商品住宅、二手住宅价格指数：环比、同比、累计涨跌、城市排行与对比">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0c0f;
+      --panel: #13171c;
+      --panel-2: #1a1f26;
+      --hover: rgba(255,255,255,0.04);
+      --line: rgba(255,255,255,0.07);
+      --line-2: rgba(255,255,255,0.14);
+      --text-1: #eef1f4;
+      --text-2: #9ba5b1;
+      --text-3: #64707d;
+      --accent: #f59e0b;
+      --grad: linear-gradient(120deg, #f59e0b 0%, #ef4444 60%, #ec4899 100%);
+      --up: #f87171;
+      --down: #34d399;
+      --flat: #94a3b8;
+      --s1: #f59e0b;
+      --s2: #60a5fa;
+      --s3: #c084fc;
+      --s4: #34d399;
+      --shadow: 0 0 0 1px var(--line), 0 12px 32px rgba(0,0,0,0.35);
+    }
+    :root[data-theme="light"] {
+      --bg: #f7f7f5;
+      --panel: #ffffff;
+      --panel-2: #f1f2f0;
+      --hover: rgba(20,30,40,0.035);
+      --line: rgba(20,30,40,0.08);
+      --line-2: rgba(20,30,40,0.16);
+      --text-1: #141a21;
+      --text-2: #525d69;
+      --text-3: #94a0ab;
+      --accent: #d97706;
+      --up: #dc2626;
+      --down: #059669;
+      --flat: #64748b;
+      --s1: #d97706;
+      --s2: #2563eb;
+      --s3: #9333ea;
+      --s4: #059669;
+      --shadow: 0 0 0 1px var(--line), 0 10px 28px rgba(20,30,40,0.06);
+    }
+
+    body {
+      background: var(--bg); color: var(--text-1);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; min-height: 100vh;
+    }
+    a { color: inherit; text-decoration: none; }
+    button, select { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+    .num { font-variant-numeric: tabular-nums; }
+    .muted { color: var(--text-3); font-size: 12px; }
+    .up { color: var(--up); } .down { color: var(--down); } .flat { color: var(--flat); }
+
+    .topbar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 94%, transparent); border-bottom: 1px solid var(--line); }
+    .topbar-inner { max-width: 1240px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 17px; letter-spacing: -0.02em; white-space: nowrap; }
+    .logo-mark { width: 30px; height: 30px; border-radius: 9px; background: var(--grad); display: grid; place-items: center; font-size: 16px; }
+    .logo small { font-weight: 500; color: var(--text-3); font-size: 12px; margin-left: 2px; }
+    .seg { display: inline-flex; background: var(--hover); border: 1px solid var(--line); border-radius: 10px; padding: 3px; flex-wrap: wrap; }
+    .seg button { padding: 5px 12px; border-radius: 7px; font-size: 13px; color: var(--text-2); font-weight: 600; white-space: nowrap; }
+    .seg button:hover { color: var(--text-1); }
+    .seg button.active { background: var(--panel); color: var(--text-1); box-shadow: 0 0 0 1px var(--line-2); }
+    .spacer { flex: 1; }
+    .updated { font-size: 12px; color: var(--text-3); white-space: nowrap; }
+    .icon-btn { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); display: grid; place-items: center; color: var(--text-2); flex-shrink: 0; }
+    .icon-btn:hover { color: var(--text-1); border-color: var(--line-2); }
+    .icon-btn.spin svg { animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .layout { max-width: 1240px; margin: 0 auto; padding: 22px 20px 60px; display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 22px; }
+    .aside { position: sticky; top: 76px; align-self: start; display: flex; flex-direction: column; gap: 14px; }
+    .panel { background: var(--panel); border-radius: 14px; box-shadow: var(--shadow); }
+    .widget { padding: 16px; }
+    .widget h3 { font-size: 13px; font-weight: 700; color: var(--text-2); margin-bottom: 12px; }
+    .view { display: none; }
+    .view.active { display: block; }
+    .section-title { font-size: 15px; font-weight: 700; margin: 24px 0 12px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .section-title small { color: var(--text-3); font-weight: 500; font-size: 12px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+    .sel { padding: 6px 10px; border-radius: 9px; border: 1px solid var(--line-2); font-size: 13px; font-weight: 600; background: var(--panel); }
+    .chip { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--text-2); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+    .chip:hover { border-color: var(--line-2); color: var(--text-1); }
+    .chip.active { background: var(--text-1); color: var(--bg); border-color: var(--text-1); }
+    .chip .x { margin-left: 6px; opacity: .6; }
+
+    /* 我的城市 */
+    .hero { padding: 20px 22px; }
+    .hero-k { color: var(--text-3); font-size: 12px; font-weight: 600; }
+    .hero-big { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; margin: 4px 0 6px; line-height: 1.25; }
+    .hero-sub { color: var(--text-2); }
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+    .card { padding: 16px 18px; }
+    .card h4 { font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .card h4 i { width: 10px; height: 3px; border-radius: 2px; background: var(--c); }
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+    .stat .k { font-size: 11.5px; color: var(--text-3); white-space: nowrap; }
+    .stat .v { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+    .stat .s { font-size: 11px; color: var(--text-3); }
+    .chart { padding: 14px 16px 10px; margin-top: 14px; position: relative; }
+    .chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+    .chart .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-2); margin-bottom: 6px; }
+    .chart .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .chart .legend i { width: 12px; height: 3px; border-radius: 2px; }
+    .tip { position: absolute; pointer-events: none; background: var(--panel-2); box-shadow: 0 0 0 1px var(--line-2), 0 8px 20px rgba(0,0,0,.3); border-radius: 9px; padding: 7px 10px; font-size: 12px; white-space: nowrap; display: none; z-index: 5; }
+    .tip b { display: block; margin-bottom: 2px; }
+    table.t { width: 100%; border-collapse: collapse; }
+    .t th, .t td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .t th { font-size: 12px; color: var(--text-3); font-weight: 600; }
+    .t th:first-child, .t td:first-child { text-align: left; }
+    .t tr:last-child td { border-bottom: 0; }
+    .t th.sort { cursor: pointer; user-select: none; }
+    .t th.sort:hover { color: var(--text-1); }
+    .t th.on { color: var(--text-1); }
+    .t td.c { cursor: pointer; font-weight: 600; text-align: left; }
+    .t th[data-sort="c"] { text-align: left; }
+    .t td.c:hover { color: var(--accent); }
+    .t td.c small { color: var(--text-3); font-weight: 500; margin-left: 4px; font-size: 11px; }
+    .heat { border-radius: 6px; padding: 1px 6px; }
+    .wrap { overflow-x: auto; }
+
+    /* 全国 */
+    .bars svg { width: 100%; height: 200px; display: block; }
+    .tier1 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+    .t1 { padding: 14px 16px; cursor: pointer; }
+    .t1:hover { box-shadow: 0 0 0 1px var(--line-2); }
+    .t1 b { font-size: 15px; }
+    .t1 .row { display: flex; justify-content: space-between; font-size: 12.5px; margin-top: 6px; color: var(--text-2); }
+
+    .kv { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+    .kv:last-child { border-bottom: 0; }
+    .kv span:first-child { color: var(--text-2); }
+    .kv b { font-weight: 700; text-align: right; }
+    .count-big { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+    .count-big small { font-size: 13px; font-weight: 600; color: var(--text-2); margin-left: 4px; }
+    .ud { display: flex; height: 8px; border-radius: 999px; overflow: hidden; margin: 10px 0 6px; }
+    .ud i { display: block; height: 100%; }
+    .src { display: flex; align-items: center; gap: 8px; font-size: 12.5px; padding: 3px 0; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
+    .dot.bad { background: var(--up); }
+    .empty { padding: 30px; text-align: center; color: var(--text-3); }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: minmax(0,1fr); }
+      .aside { position: static; }
+    }
+    @media (max-width: 640px) {
+      .topbar-inner { padding: 10px 16px; gap: 10px; }
+      .layout { padding: 16px 16px 48px; }
+      .logo small, .updated { display: none; }
+      .cards { grid-template-columns: 1fr; }
+      .hero-big { font-size: 22px; }
+      .tier1 { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="logo"><div class="logo-mark">🏠</div>70 城房价<small>Home Prices</small></div>
+      <div class="seg" id="viewSeg">
+        <button data-v="city" class="active">我的城市</button>
+        <button data-v="nation">全国</button>
+        <button data-v="rank">排行</button>
+        <button data-v="compare">对比</button>
+      </div>
+      <div class="spacer"></div>
+      <span class="updated" id="updated">加载中…</span>
+      <button class="icon-btn" id="reloadBtn" title="重新读取数据"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
+      <a class="icon-btn" href="https://github.com/climb0516/home-prices/actions/workflows/scrape.yml" target="_blank" rel="noopener" title="到 GitHub Actions 手动触发抓取">⚡</a>
+      <button class="icon-btn" id="themeBtn" title="深浅色">☾</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <main>
+      <section class="view active" id="view-city"></section>
+      <section class="view" id="view-nation"></section>
+      <section class="view" id="view-rank"></section>
+      <section class="view" id="view-compare"></section>
+    </main>
+
+    <aside class="aside">
+      <div class="panel widget" id="monthBox"></div>
+      <div class="panel widget" id="nextBox"></div>
+      <div class="panel widget">
+        <h3>怎么看</h3>
+        <p class="muted" style="line-height:1.8">统计局只发布<b>指数</b>，不发布每平米价格。<br>
+          <b>环比</b>：和上个月比；<b>同比</b>：和去年同月比。<br>
+          <b>累计</b>：把每月环比连乘，算出相对 2021 年 12 月的涨跌，是推算值（和同比交叉验证，误差约 0.1 个点）。<br>
+          <b>距高点</b>：累计指数从这段时间的最高点跌了多少。<br>
+          一线 / 二线 / 三线均值为 70 城简单平均，和统计局口径可能略有差异。颜色：红涨绿跌。</p>
+      </div>
+      <div class="panel widget">
+        <h3>数据来源</h3>
+        <div id="sources"></div>
+        <p class="muted" style="margin-top:10px"><a href="https://www.stats.gov.cn/sj/zxfb/" target="_blank" rel="noopener" style="text-decoration:underline">国家统计局 · 最新发布</a>「X 月份 70 个大中城市商品住宅销售价格变动情况」</p>
+      </div>
+    </aside>
+  </div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('hp70.' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('hp70.' + k, JSON.stringify(v)); } catch {} },
+};
+const VIEWS = ['city', 'nation', 'rank', 'compare'];
+const KIND = { new: '新建商品住宅', used: '二手住宅' };
+const SIZE = ['90㎡ 以下', '90–144㎡', '144㎡ 以上'];
+
+let DATA = null, MONTHS = [], CITIES = [];
+const state = {
+  view: VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : store.get('view', 'city'),
+  city: store.get('city', '杭州'),
+  rankKind: store.get('rankKind', 'used'), rankSort: store.get('rankSort', 'mom'), rankDir: 1, rankTier: 0,
+  cmpKind: store.get('cmpKind', 'used'), cmp: store.get('cmp', ['北京', '上海', '杭州', '深圳']),
+  natKind: store.get('natKind', 'used'),
+};
+
+// ── 数据工具 ──
+const pct = v => v == null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(1)}%`;
+const cls = v => v == null ? '' : v > 0.0001 ? 'up' : v < -0.0001 ? 'down' : 'flat';
+const idx2pct = v => v == null ? null : +(v - 100).toFixed(2);
+const mlabel = m => `${+m.slice(0, 4)} 年 ${+m.slice(5)} 月`;
+const mshort = m => `${m.slice(2, 4)}/${+m.slice(5)}`;
+const tierOf = c => DATA.tiers['1'].includes(c) ? 1 : DATA.tiers['2'].includes(c) ? 2 : 3;
+// 累计指数：2021-12 = 100，按每月环比连乘
+function chain(city, kind) {
+  let v = 100;
+  return MONTHS.map(m => { const r = DATA.months[m][kind][city]; if (r) v *= r[0] / 100; return [m, r ? +v.toFixed(2) : null]; });
+}
+function cityStats(city, kind) {
+  const last = DATA.months[MONTHS.at(-1)][kind][city];
+  const ch = chain(city, kind).filter(x => x[1] != null);
+  const cur = ch.at(-1)[1], peak = ch.reduce((a, b) => b[1] > a[1] ? b : a, ['2021-12', 100]);   // 基期本身也可能是高点
+  let streak = 0, dir = Math.sign(last[0] - 100);
+  for (let i = MONTHS.length - 1; i >= 0; i--) { const r = DATA.months[MONTHS[i]][kind][city]; if (!r || Math.sign(r[0] - 100) !== dir || dir === 0) break; streak++; }
+  return { mom: idx2pct(last[0]), yoy: idx2pct(last[1]), cum: +(cur - 100).toFixed(1), fromPeak: +((cur / peak[1] - 1) * 100).toFixed(1), peakMonth: peak[0], streak, dir };
+}
+
+// ── SVG 折线图 ──
+function lineChart(el, series, { base = null } = {}) {
+  // 按容器实际宽度画，手机上坐标文字不会被压缩
+  const W = Math.max(300, Math.round(el.clientWidth - 32) || 760), H = W < 500 ? 220 : 260, P = { l: 40, r: 12, t: 10, b: 24 };
+  const all = series.flatMap(s => s.points.map(p => p[1]).filter(v => v != null)).concat(base != null ? [base] : []);
+  let lo = Math.min(...all), hi = Math.max(...all); const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
+  const n = series[0].points.length;
+  const x = i => P.l + i / (n - 1) * (W - P.l - P.r), y = v => P.t + (hi - v) / (hi - lo) * (H - P.t - P.b);
+  const ticks = 4, step = (hi - lo) / ticks;
+  let g = '';
+  for (let k = 0; k <= ticks; k++) { const v = lo + step * k; g += `<line x1="${P.l}" x2="${W - P.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${P.l - 6}" y="${y(v) + 4}" text-anchor="end" font-size="10.5" fill="var(--text-3)">${v.toFixed(1)}</text>`; }
+  if (base != null) g += `<line x1="${P.l}" x2="${W - P.r}" y1="${y(base)}" y2="${y(base)}" stroke="var(--text-3)" stroke-dasharray="3 4"/>`;
+  series[0].points.forEach((p, i) => { if (p[0].endsWith('-01')) g += `<line x1="${x(i)}" x2="${x(i)}" y1="${P.t}" y2="${H - P.b}" stroke="var(--line)"/><text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="10.5" fill="var(--text-3)">${p[0].slice(0, 4)}</text>`; });
+  const paths = series.map(s => {
+    let d = '', pen = false;
+    s.points.forEach((p, i) => { if (p[1] == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${x(i).toFixed(1)},${y(p[1]).toFixed(1)}`; pen = true; });
+    const lastI = s.points.map(p => p[1] != null).lastIndexOf(true);
+    return `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linejoin="round"/>` + (lastI >= 0 ? `<circle cx="${x(lastI)}" cy="${y(s.points[lastI][1])}" r="3.5" fill="${s.color}"/>` : '');
+  }).join('');
+  el.innerHTML = `<div class="legend">${series.map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('')}</div>
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${g}${paths}<line class="cur" x1="0" x2="0" y1="${P.t}" y2="${H - P.b}" stroke="var(--line-2)" visibility="hidden"/></svg><div class="tip"></div>`;
+  const svg = el.querySelector('svg'), tip = el.querySelector('.tip'), cur = el.querySelector('.cur');
+  svg.onmousemove = e => {
+    const r = svg.getBoundingClientRect(), fx = (e.clientX - r.left) / r.width * W;
+    const i = Math.max(0, Math.min(n - 1, Math.round((fx - P.l) / (W - P.l - P.r) * (n - 1))));
+    cur.setAttribute('x1', x(i)); cur.setAttribute('x2', x(i)); cur.setAttribute('visibility', 'visible');
+    tip.style.display = 'block';
+    tip.innerHTML = `<b>${mlabel(series[0].points[i][0])}</b>` + series.map(s => `<div><span style="color:${s.color}">●</span> ${esc(s.name)}：${s.points[i][1] ?? '—'}${s.fmt ? ' · ' + s.fmt(i) : ''}</div>`).join('');
+    const px = x(i) / W * r.width;
+    tip.style.left = Math.min(r.width - tip.offsetWidth, Math.max(0, px + 12)) + 'px'; tip.style.top = '30px';
+  };
+  svg.onmouseleave = () => { tip.style.display = 'none'; cur.setAttribute('visibility', 'hidden'); };
+}
+
+function citySelect(id, cur) {
+  const groups = [[1, '一线'], [2, '二线'], [3, '三线']];
+  return `<select class="sel" id="${id}">${groups.map(([t, n]) => `<optgroup label="${n}城市">${CITIES.filter(c => tierOf(c) === t).map(c => `<option ${c === cur ? 'selected' : ''}>${c}</option>`).join('')}</optgroup>`).join('')}</select>`;
+}
+
+// ── 我的城市 ──
+function renderCity() {
+  const c = CITIES.includes(state.city) ? state.city : '北京';
+  const last = MONTHS.at(-1), L = DATA.months[last];
+  const S = { new: cityStats(c, 'new'), used: cityStats(c, 'used') };
+  const u = S.used;
+  const verdict = u.dir < 0 ? `二手房价已连续 <span class="down">${u.streak}</span> 个月下跌` : u.dir > 0 ? `二手房价已连续 <span class="up">${u.streak}</span> 个月上涨` : '二手房价本月持平';
+  const card = (k, color) => { const s = S[k]; return `<div class="panel card"><h4><i style="--c:${color}"></i>${KIND[k]}</h4><div class="stats">
+      <div class="stat"><div class="k">环比</div><div class="v num ${cls(s.mom)}">${pct(s.mom)}</div><div class="s">比上月</div></div>
+      <div class="stat"><div class="k">同比</div><div class="v num ${cls(s.yoy)}">${pct(s.yoy)}</div><div class="s">比去年同月</div></div>
+      <div class="stat"><div class="k">累计</div><div class="v num ${cls(s.cum)}">${pct(s.cum)}</div><div class="s">比 2021/12</div></div>
+      <div class="stat"><div class="k">距高点</div><div class="v num ${cls(s.fromPeak)}">${pct(s.fromPeak)}</div><div class="s">高点 ${mshort(s.peakMonth)}</div></div></div></div>`; };
+  const sz = k => (L[k + '_size'] || {})[c];
+  const sizeRows = SIZE.map((n, i) => `<tr><td>${n}</td>${['new', 'used'].map(k => { const r = sz(k)?.[i]; return r ? `<td class="${cls(r[0] - 100)}">${pct(idx2pct(r[0]))}</td><td class="${cls(r[1] - 100)}">${pct(idx2pct(r[1]))}</td>` : '<td>—</td><td>—</td>'; }).join('')}</tr>`).join('');
+  $('#view-city').innerHTML = `<div class="filters">${citySelect('citySel', c)}<span class="muted">${['', '一线', '二线', '三线'][tierOf(c)]}城市 · 选择会记在本机</span></div>
+    <div class="panel hero"><div class="hero-k">${mlabel(last)} · ${esc(c)}</div>
+      <div class="hero-big">${verdict}，比 2021 年底累计 <span class="${cls(u.cum)}">${u.cum > 0 ? '涨' : '跌'} ${Math.abs(u.cum).toFixed(1)}%</span></div>
+      <div class="hero-sub">新建商品住宅环比 <span class="${cls(S.new.mom)}">${pct(S.new.mom)}</span>、同比 <span class="${cls(S.new.yoy)}">${pct(S.new.yoy)}</span>；二手住宅环比 <span class="${cls(u.mom)}">${pct(u.mom)}</span>、同比 <span class="${cls(u.yoy)}">${pct(u.yoy)}</span>。二手房距 ${mshort(u.peakMonth)} 的高点 ${pct(u.fromPeak)}。</div></div>
+    <div class="cards">${card('new', 'var(--s1)')}${card('used', 'var(--s2)')}</div>
+    <div class="section-title">累计走势<small>2021 年 12 月 = 100，按月环比连乘；悬停看每月数值</small></div>
+    <div class="panel chart" id="cityChart"></div>
+    <div class="section-title">按面积分段 · ${mlabel(last)}</div>
+    <div class="panel wrap"><table class="t"><thead><tr><th>面积</th><th>新建环比</th><th>新建同比</th><th>二手环比</th><th>二手同比</th></tr></thead><tbody>${sizeRows}</tbody></table></div>`;
+  const ch = { new: chain(c, 'new'), used: chain(c, 'used') };
+  const momOf = (k, i) => { const r = DATA.months[MONTHS[i]][k][c]; return r ? `环比 ${pct(idx2pct(r[0]))}` : ''; };
+  lineChart($('#cityChart'), [
+    { name: '新建商品住宅', color: 'var(--s1)', points: ch.new, fmt: i => momOf('new', i) },
+    { name: '二手住宅', color: 'var(--s2)', points: ch.used, fmt: i => momOf('used', i) },
+  ], { base: 100 });
+}
+
+// ── 全国 ──
+function renderNation() {
+  const k = state.natKind, last = MONTHS.at(-1), L = DATA.months[last];
+  const cnt = m => { const v = Object.values(DATA.months[m][k]).map(r => r[0]); return [v.filter(x => x > 100).length, v.filter(x => x === 100).length, v.filter(x => x < 100).length]; };
+  // 上涨 / 持平 / 下跌城市数堆叠柱
+  const W = Math.max(300, Math.round(($('#view-nation').clientWidth || 790) - 32)), H = 200, P = { l: 30, r: 8, t: 8, b: 22 }, n = MONTHS.length, bw = (W - P.l - P.r) / n;
+  let bars = '';
+  MONTHS.forEach((m, i) => {
+    const [u, f, d] = cnt(m), x0 = P.l + i * bw, sc = (H - P.t - P.b) / 70;
+    let yy = H - P.b;
+    [[d, 'var(--down)'], [f, 'var(--flat)'], [u, 'var(--up)']].forEach(([v, col]) => { bars += `<rect x="${x0 + 1}" y="${yy - v * sc}" width="${Math.max(1, bw - 2)}" height="${v * sc}" fill="${col}" opacity=".85"><title>${mlabel(m)}：上涨 ${u} · 持平 ${f} · 下跌 ${d}</title></rect>`; yy -= v * sc; });
+    if (m.endsWith('-01')) bars += `<text x="${x0}" y="${H - 6}" font-size="10.5" fill="var(--text-3)">${m.slice(0, 4)}</text>`;
+  });
+  [0, 35, 70].forEach(v => { const yy = H - P.b - v * (H - P.t - P.b) / 70; bars += `<text x="${P.l - 6}" y="${yy + 4}" text-anchor="end" font-size="10.5" fill="var(--text-3)">${v}</text>`; });
+  const [u, f, d] = cnt(last);
+  const t1 = DATA.tiers['1'].map(c => { const s = cityStats(c, k); return `<div class="panel t1" data-city="${c}"><b>${c}</b>
+      <div class="row"><span>环比</span><span class="num ${cls(s.mom)}">${pct(s.mom)}</span></div>
+      <div class="row"><span>同比</span><span class="num ${cls(s.yoy)}">${pct(s.yoy)}</span></div>
+      <div class="row"><span>距高点</span><span class="num ${cls(s.fromPeak)}">${pct(s.fromPeak)}</span></div></div>`; }).join('');
+  $('#view-nation').innerHTML = `<div class="filters"><div class="seg" id="natSeg">${['used', 'new'].map(x => `<button data-nk="${x}" class="${x === k ? 'active' : ''}">${KIND[x]}</button>`).join('')}</div></div>
+    <div class="panel hero"><div class="hero-k">${mlabel(last)} · ${KIND[k]}</div>
+      <div class="hero-big">70 城中 <span class="up">${u}</span> 城上涨、${f} 城持平、<span class="down">${d}</span> 城下跌</div>
+      <div class="hero-sub">上涨城市数越多，越接近「止跌回稳」。下图是每个月的分布，悬停看具体数字。</div></div>
+    <div class="section-title">环比涨跌城市数<small>红 = 上涨，灰 = 持平，绿 = 下跌</small></div>
+    <div class="panel chart bars"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${bars}</svg></div>
+    <div class="section-title">一线 · 二线 · 三线同比<small>各组城市同比的简单平均（去年同月 = 100）</small></div>
+    <div class="panel chart" id="tierChart"></div>
+    <div class="section-title">一线城市<small>点卡片看城市详情</small></div>
+    <div class="tier1">${t1}</div>`;
+  const tierSeries = (t, name, color) => ({ name, color, points: MONTHS.map(m => { const vs = Object.entries(DATA.months[m][k]).filter(([c]) => tierOf(c) === t).map(([, r]) => r[1]); return [m, vs.length ? +(vs.reduce((a, b) => a + b, 0) / vs.length).toFixed(2) : null]; }) });
+  lineChart($('#tierChart'), [tierSeries(1, '一线', 'var(--s1)'), tierSeries(2, '二线', 'var(--s2)'), tierSeries(3, '三线', 'var(--s3)')], { base: 100 });
+}
+
+// ── 排行 ──
+function renderRank() {
+  const k = state.rankKind;
+  let rows = CITIES.map(c => ({ c, t: tierOf(c), ...cityStats(c, k) })).filter(r => !state.rankTier || r.t === state.rankTier);
+  const key = state.rankSort;
+  rows.sort((a, b) => key === 'c' ? a.c.localeCompare(b.c, 'zh') * state.rankDir : (a[key] - b[key]) * state.rankDir || a.c.localeCompare(b.c, 'zh'));
+  const heat = v => { const a = Math.min(1, Math.abs(v) / (key === 'mom' ? 1 : 15)); return v === 0 ? '' : `background:color-mix(in srgb, var(--${v > 0 ? 'up' : 'down'}) ${Math.round(a * 28)}%, transparent)`; };
+  const th = (id, n) => `<th class="sort ${state.rankSort === id ? 'on' : ''}" data-sort="${id}">${n}${state.rankSort === id ? (state.rankDir > 0 ? ' ↑' : ' ↓') : ''}</th>`;
+  $('#view-rank').innerHTML = `<div class="filters"><div class="seg" id="rankSeg">${['used', 'new'].map(x => `<button data-rk="${x}" class="${x === k ? 'active' : ''}">${KIND[x]}</button>`).join('')}</div>
+      ${[[0, '全部 70 城'], [1, '一线'], [2, '二线'], [3, '三线']].map(([t, n]) => `<button class="chip ${state.rankTier === t ? 'active' : ''}" data-tier="${t}">${n}</button>`).join('')}
+      <span class="spacer"></span><span class="muted">${mlabel(MONTHS.at(-1))} · 点表头排序，点城市看详情</span></div>
+    <div class="panel wrap"><table class="t"><thead><tr><th>#</th>${th('c', '城市')}${th('mom', '环比')}${th('yoy', '同比')}${th('cum', '比 2021/12 累计')}${th('fromPeak', '距高点')}${th('streak', '连续')}</tr></thead>
+      <tbody>${rows.map((r, i) => `<tr><td class="muted">${i + 1}</td><td class="c" data-city="${r.c}">${r.c}<small>${['', '一线', '二线', '三线'][r.t]}</small></td>
+        <td><span class="heat ${cls(r.mom)}" style="${heat(r.mom)}">${pct(r.mom)}</span></td><td><span class="heat ${cls(r.yoy)}" style="${heat(r.yoy)}">${pct(r.yoy)}</span></td>
+        <td class="${cls(r.cum)}">${pct(r.cum)}</td><td class="${cls(r.fromPeak)}">${pct(r.fromPeak)}</td>
+        <td class="${r.dir > 0 ? 'up' : r.dir < 0 ? 'down' : 'flat'}">${r.dir ? `${r.dir > 0 ? '涨' : '跌'} ${r.streak} 月` : '持平'}</td></tr>`).join('')}</tbody></table></div>`;
+}
+
+// ── 对比 ──
+function renderCompare() {
+  const k = state.cmpKind, colors = ['var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s4)'];
+  state.cmp = state.cmp.filter(c => CITIES.includes(c)).slice(0, 4);
+  $('#view-compare').innerHTML = `<div class="filters"><div class="seg" id="cmpSeg">${['used', 'new'].map(x => `<button data-ck="${x}" class="${x === k ? 'active' : ''}">${KIND[x]}</button>`).join('')}</div>
+      ${state.cmp.map((c, i) => `<button class="chip active" data-rm="${c}" style="background:${colors[i]};border-color:${colors[i]}">${c}<span class="x">✕</span></button>`).join('')}
+      ${state.cmp.length < 4 ? citySelect('cmpAdd', '').replace('<select', '<select style="max-width:140px"').replace('>', '><option value="" selected>＋ 添加城市</option>') : ''}
+      <span class="muted">最多 4 个</span></div>
+    <div class="panel chart" id="cmpChart"></div>
+    <div class="panel wrap" style="margin-top:14px"><table class="t"><thead><tr><th>城市</th><th>环比</th><th>同比</th><th>比 2021/12 累计</th><th>距高点</th></tr></thead><tbody>
+      ${state.cmp.map((c, i) => { const s = cityStats(c, k); return `<tr><td class="c" data-city="${c}"><span style="color:${colors[i]}">●</span> ${c}</td><td class="${cls(s.mom)}">${pct(s.mom)}</td><td class="${cls(s.yoy)}">${pct(s.yoy)}</td><td class="${cls(s.cum)}">${pct(s.cum)}</td><td class="${cls(s.fromPeak)}">${pct(s.fromPeak)}</td></tr>`; }).join('')}
+    </tbody></table></div>`;
+  if (state.cmp.length) lineChart($('#cmpChart'), state.cmp.map((c, i) => ({ name: c, color: colors[i], points: chain(c, k) })), { base: 100 });
+  else $('#cmpChart').innerHTML = '<div class="empty">添加城市开始对比</div>';
+}
+
+// ── 侧栏 ──
+function renderAside() {
+  const s = DATA.summary, last = MONTHS.at(-1);
+  const bar = c => { const t = c.up + c.flat + c.down; return `<div class="ud"><i style="width:${c.up / t * 100}%;background:var(--up)"></i><i style="width:${c.flat / t * 100}%;background:var(--flat)"></i><i style="width:${c.down / t * 100}%;background:var(--down)"></i></div>`; };
+  $('#monthBox').innerHTML = `<h3>${mlabel(last)} · 70 城</h3>
+    ${['used', 'new'].map(k => { const c = s.counts[k]; return `<div style="margin-bottom:8px"><div class="kv" style="border:0;padding-bottom:0"><span>${KIND[k]}</span><b class="num"><span class="up">${c.up}</span> / ${c.flat} / <span class="down">${c.down}</span></b></div>${bar(c)}</div>`; }).join('')}
+    <div class="muted">上涨 / 持平 / 下跌城市数 · ${s.published} 发布</div>`;
+  // 下次发布：统计局通常在次月 15~19 日发布上月数据
+  const pub = new Date(s.published + 'T00:00:00'), nx = new Date(pub.getFullYear(), pub.getMonth() + 1, 15);
+  const days = Math.ceil((nx - new Date()) / 864e5);
+  const nm = +last.slice(5) % 12 + 1;
+  $('#nextBox').innerHTML = `<h3>下次发布</h3><div class="count-big num">${days > 0 ? days : '近日'}<small>${days > 0 ? '天后起' : ''}</small></div>
+    <div class="kv" style="margin-top:8px"><span>${nm} 月份数据</span><b>预计 ${nx.getMonth() + 1} 月 15–20 日</b></div>
+    <p class="muted" style="margin-top:6px">页面每天检查一次，发布当天就会更新。</p>`;
+  $('#sources').innerHTML = DATA.sources.map(x => `<div class="src"><span class="dot ${x.ok ? '' : 'bad'}"></span><span style="flex:1">${esc(x.name)}</span><span class="muted num">${x.ok ? x.count : '失败'}</span></div>`).join('') +
+    `<div class="muted" style="margin-top:6px">共 ${MONTHS.length} 个月：${mshort(MONTHS[0])} – ${mshort(last)}</div>`;
+}
+
+function render() {
+  document.querySelectorAll('#viewSeg button').forEach(b => b.classList.toggle('active', b.dataset.v === state.view));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + state.view));
+  ({ city: renderCity, nation: renderNation, rank: renderRank, compare: renderCompare })[state.view]();
+  renderAside();
+}
+function go(view) { state.view = view; store.set('view', view); history.replaceState(null, '', '#' + view); render(); scrollTo(0, 0); }
+
+document.addEventListener('click', ev => {
+  let b;
+  if ((b = ev.target.closest('#viewSeg button'))) go(b.dataset.v);
+  else if ((b = ev.target.closest('[data-city]'))) { state.city = b.dataset.city; store.set('city', state.city); go('city'); }
+  else if ((b = ev.target.closest('[data-nk]'))) { state.natKind = b.dataset.nk; store.set('natKind', state.natKind); render(); }
+  else if ((b = ev.target.closest('[data-rk]'))) { state.rankKind = b.dataset.rk; store.set('rankKind', state.rankKind); render(); }
+  else if ((b = ev.target.closest('[data-tier]'))) { state.rankTier = +b.dataset.tier; render(); }
+  else if ((b = ev.target.closest('[data-sort]'))) { const s = b.dataset.sort; state.rankDir = state.rankSort === s ? -state.rankDir : 1; state.rankSort = s; store.set('rankSort', s); render(); }
+  else if ((b = ev.target.closest('[data-ck]'))) { state.cmpKind = b.dataset.ck; store.set('cmpKind', state.cmpKind); render(); }
+  else if ((b = ev.target.closest('[data-rm]'))) { state.cmp = state.cmp.filter(c => c !== b.dataset.rm); store.set('cmp', state.cmp); render(); }
+});
+document.addEventListener('change', ev => {
+  if (ev.target.id === 'citySel') { state.city = ev.target.value; store.set('city', state.city); render(); }
+  if (ev.target.id === 'cmpAdd' && ev.target.value && !state.cmp.includes(ev.target.value)) { state.cmp.push(ev.target.value); store.set('cmp', state.cmp); render(); }
+});
+
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  $('#themeBtn').textContent = t === 'dark' ? '☾' : '☀';
+}
+applyTheme(store.get('theme', matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'));
+$('#themeBtn').onclick = () => { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; store.set('theme', t); applyTheme(t); render(); };
+
+async function load() {
+  const btn = $('#reloadBtn'); btn.classList.add('spin');
+  try {
+    const r = await fetch('data.json?t=' + Date.now(), { cache: 'no-store' });
+    DATA = await r.json();
+    MONTHS = Object.keys(DATA.months).sort();
+    CITIES = Object.keys(DATA.months[MONTHS.at(-1)].new);
+    const u = new Date(DATA.updated);
+    $('#updated').textContent = `更新于 ${u.getMonth() + 1}/${u.getDate()} ${String(u.getHours()).padStart(2, '0')}:${String(u.getMinutes()).padStart(2, '0')}`;
+    render();
+  } catch (err) {
+    $('#updated').textContent = '数据读取失败';
+    console.error(err);
+  } finally { btn.classList.remove('spin'); }
+}
+$('#reloadBtn').onclick = load;
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => DATA && render(), 200); });   // 图表按宽度重画
+load();
+</script>
+</body>
+</html>
