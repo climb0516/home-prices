@@ -166,7 +166,103 @@
       .cards { grid-template-columns: 1fr; }
       .hero-big { font-size: 22px; }
       .tier1 { grid-template-columns: 1fr 1fr; }
+      .stats { grid-template-columns: repeat(2, minmax(0,1fr)); row-gap: 12px; }   /* 手机上 4 列太挤 */
     }
+    /* ── 详情抽屉 + 列表页（通用组件 kit：电脑右侧滑出，手机底部升起；地址 #/item/类型/id、#/list/key） ── */
+    :root { --kit-bg: var(--bg, #0b0a10); --kit-panel: var(--panel, var(--card, rgba(255,255,255,.04))); --kit-line: var(--line, var(--sep, rgba(255,255,255,.08)));
+      --kit-line2: var(--line-2, rgba(255,255,255,.14)); --kit-t1: var(--text-1, #f1eff7); --kit-t2: var(--text-2, #a39fb3); --kit-t3: var(--text-3, #6b677a);
+      --kit-accent: var(--accent, #a3e635); --kit-hover: var(--hover, rgba(255,255,255,.05)); }
+    .kit-mask { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,.38); display: none; }
+    .kit-mask.open { display: block; }
+    .kit-sheet { position: absolute; top: 12px; right: 12px; bottom: 12px; width: clamp(440px, 42vw, 620px); max-width: calc(100vw - 24px);
+      display: flex; flex-direction: column; overflow: hidden; color: var(--kit-t1); border-radius: 18px;
+      background: linear-gradient(var(--kit-panel), var(--kit-panel)), var(--kit-bg); box-shadow: 0 0 0 1px var(--kit-line2), 0 24px 60px rgba(0,0,0,.45);
+      animation: kit-in .24s ease-out; }
+    @keyframes kit-in { from { transform: translateX(40px); opacity: 0; } }
+    .kit-x { position: absolute; top: 12px; right: 12px; z-index: 3; width: 32px; height: 32px; border-radius: 50%; border: 0; cursor: pointer;
+      background: rgba(0,0,0,.5); color: #fff; font-size: 15px; display: grid; place-items: center; }
+    .kit-scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
+    .kit-cover { aspect-ratio: 16/9; background: var(--kit-hover) center / cover no-repeat; position: relative; }
+    .kit-cover.tall { aspect-ratio: auto; height: 280px; background-size: contain; background-color: #000; }
+    .kit-cover.ph { display: grid; place-items: center; font-size: 56px; aspect-ratio: 16/6; }
+    .kit-head { padding: 18px 20px 4px; display: flex; gap: 14px; align-items: flex-start; }
+    .kit-head .kit-thumb { flex-shrink: 0; width: 64px; height: 64px; border-radius: 14px; background: var(--kit-hover) center / cover no-repeat;
+      display: grid; place-items: center; font-size: 28px; overflow: hidden; }
+    .kit-head .kit-t { flex: 1; min-width: 0; padding-right: 30px; }
+    .kit-cover + .kit-head .kit-t { padding-right: 0; }
+    .kit-head h2 { font-size: 19px; font-weight: 800; line-height: 1.35; letter-spacing: -0.01em; }
+    .kit-sub { color: var(--kit-t2); font-size: 13px; margin-top: 4px; }
+    .kit-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .kit-tags span { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: var(--kit-hover); color: var(--kit-t2); }
+    .kit-big { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    .kit-big b { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+    .kit-body { padding: 4px 20px 20px; }
+    .kit-sec { padding-top: 16px; }
+    .kit-sec + .kit-sec { margin-top: 6px; border-top: 1px solid var(--kit-line); }
+    .kit-sec h4 { font-size: 14.5px; font-weight: 700; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .kit-sec h4 small { font-size: 12px; color: var(--kit-t3); font-weight: 500; }
+    .kit-kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+    .kit-kv div { background: var(--kit-hover); border-radius: 10px; padding: 8px 11px; min-width: 0; }
+    .kit-kv small { display: block; font-size: 11px; color: var(--kit-t3); }
+    .kit-kv b { display: block; font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+    .kit-p { font-size: 13.5px; line-height: 1.75; color: var(--kit-t2); white-space: pre-line; }
+    .kit-rows { display: flex; flex-direction: column; }
+    .kit-row { display: flex; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--kit-line); font-size: 13px; text-decoration: none; color: inherit; }
+    .kit-row:first-child { border-top: 0; }
+    .kit-row[data-kit-go], a.kit-row { cursor: pointer; }
+    .kit-row[data-kit-go]:hover .kit-rt, a.kit-row:hover .kit-rt { color: var(--kit-accent); }
+    .kit-row .kit-rt { flex: 1; min-width: 0; line-height: 1.45; }
+    .kit-row .kit-rm { color: var(--kit-t3); font-size: 12px; white-space: nowrap; }
+    .kit-row img, .kit-row .kit-ri { width: 54px; height: 40px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: var(--kit-hover); }
+    .kit-acts { flex-shrink: 0; display: flex; gap: 10px; padding: 12px 20px 16px; border-top: 1px solid var(--kit-line); }
+    .kit-acts a, .kit-acts button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 11px 12px; border-radius: 11px;
+      font: inherit; font-size: 13.5px; font-weight: 700; text-decoration: none; cursor: pointer; border: 1px solid var(--kit-line2); color: var(--kit-t1); background: transparent; }
+    .kit-acts .pri { background: var(--kit-accent); border-color: var(--kit-accent); color: #111; }
+    .kit-acts a:hover, .kit-acts button:hover { filter: brightness(1.08); }
+    /* 列表页 */
+    .kit-lhead { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .kit-back { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--kit-line2); background: transparent; color: var(--kit-t1);
+      font-size: 20px; cursor: pointer; display: grid; place-items: center; flex-shrink: 0; }
+    .kit-back:hover { background: var(--kit-hover); }
+    .kit-lhead h2 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+    .kit-lhead small { color: var(--kit-t3); font-size: 12.5px; margin-left: 2px; }
+    .kit-lbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .kit-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+    .kit-chips a, .kit-chips button { padding: 5px 12px; border-radius: 8px; background: var(--kit-hover); color: var(--kit-t2); font: inherit; font-size: 13px;
+      font-weight: 600; white-space: nowrap; border: 0; cursor: pointer; text-decoration: none; }
+    .kit-chips .on { background: var(--kit-t1); color: var(--kit-bg); }
+    .kit-chips small { opacity: .6; margin-left: 4px; font-weight: 500; }
+    .kit-sel { padding: 6px 10px; border-radius: 9px; border: 1px solid var(--kit-line2); background: transparent; color: var(--kit-t1); font: inherit; font-size: 12.5px; font-weight: 600; }
+    .kit-sel option { background: var(--kit-bg); }
+    .kit-more { display: block; margin: 16px auto 0; padding: 9px 22px; border-radius: 10px; border: 1px solid var(--kit-line2); background: transparent;
+      color: var(--kit-t1); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .kit-more:hover { background: var(--kit-hover); }
+    .kit-morelink { font-size: 13px; font-weight: 600; color: var(--kit-t2); text-decoration: none; white-space: nowrap; cursor: pointer; }
+    .kit-morelink:hover { color: var(--kit-t1); }
+    [data-kit-item] { cursor: pointer; }
+    @media (max-width: 760px) {
+      .kit-sheet { top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-width: none; height: 86vh; border-radius: 18px 18px 0 0; animation: kit-up .26s ease-out; }
+      @keyframes kit-up { from { transform: translateY(30%); opacity: .5; } }
+      .kit-head { padding: 16px 16px 4px; } .kit-body { padding: 4px 16px 18px; } .kit-acts { padding: 10px 16px 16px; }
+      .kit-cover.tall { height: 220px; }
+      .kit-head .kit-thumb { width: 46px; height: 46px; border-radius: 12px; font-size: 22px; }
+      .kit-head h2 { font-size: 17.5px; }
+      .kit-big b { font-size: 24px; }
+      .kit-lhead h2 { font-size: 19px; }
+    }
+    /* 本站详情 */
+    tr[data-kit-item] { cursor: pointer; }
+    tr[data-kit-item]:hover td { background: var(--hover); }
+    tr[data-kit-item]:hover td.c { color: var(--accent); }
+    .bars g[data-kit-item]:hover rect { opacity: 1; }
+    .bars .hit { fill: transparent; }
+    .bars g[data-kit-item]:hover .hit { fill: var(--hover); }
+    .kit-body .chart { margin-top: 0; padding: 10px 12px 6px; background: var(--hover); border-radius: 12px; }
+    .kit-body .t th, .kit-body .t td { padding: 7px 8px; }
+    .kit-cities { display: flex; flex-wrap: wrap; gap: 6px; }
+    .kit-cities span { padding: 3px 9px; border-radius: 7px; background: var(--hover); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+    .kit-cities span:hover { box-shadow: 0 0 0 1px var(--line-2); }
+    .kit-cities small { margin-left: 4px; font-weight: 500; }
   </style>
 </head>
 <body>
@@ -215,6 +311,133 @@
   </div>
 
 <script>
+// ── kit：详情抽屉 + 列表页路由（各站通用，内联在页面里）──
+// 用法：
+//   KIT.item('news', id => ({ title, sub, cover, thumb, tags:[], big, body:'<div class="kit-sec">…</div>', acts:[{text, href, pri}] }))
+//   KIT.list('news', (param, query) => { … 把列表页 HTML 写进容器 … })
+//   条目元素加 data-kit-item="news/<id>" 即可点击打开详情；「查看更多」写成 <a href="#/list/news">
+//   站点首页渲染函数里先调用 KIT.route() —— 返回 true 表示当前是列表页（已渲染），首页不用再渲染
+const KIT = (() => {
+  const items = {}, lists = {};
+  let mask, homeY = 0, fromHome = 0, lastHash = location.hash, onHome = null, listBox = null;
+  const kesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const parse = h => {
+    const m = (h === undefined ? location.hash : h).match(/^#\/(item|list)\/([^?]+?)(?:\?(.*))?$/);
+    if (!m) return null;
+    const [type, ...rest] = m[2].split('/');
+    return { kind: m[1], type: decodeURIComponent(type), id: rest.map(decodeURIComponent).join('/'), q: new URLSearchParams(m[3] || '') };
+  };
+  function ensure() {
+    if (mask) return;
+    mask = document.createElement('div');
+    mask.className = 'kit-mask';
+    mask.innerHTML = '<div class="kit-sheet" role="dialog" aria-modal="true"></div>';
+    document.body.appendChild(mask);
+    mask.addEventListener('click', e => { if (e.target === mask || e.target.closest('[data-kit-close]')) close(); });
+  }
+  function render(d) {
+    ensure();
+    const cover = d.cover ? `<div class="kit-cover ${d.coverTall ? 'tall' : ''}" style="background-image:url('${kesc(d.cover).replace(/'/g, '%27')}')"></div>`
+      : d.coverIcon ? `<div class="kit-cover ph" style="background:${d.coverBg || 'var(--kit-hover)'}">${d.coverIcon}</div>` : '';
+    const thumb = !d.cover && !d.coverIcon && (d.thumb || d.thumbIcon)
+      ? `<div class="kit-thumb" style="${d.thumb ? `background-image:url('${kesc(d.thumb).replace(/'/g, '%27')}')` : ''}${d.thumbBg ? `;background-color:${d.thumbBg}` : ''}">${d.thumb ? '' : d.thumbIcon}</div>` : '';
+    const acts = (d.acts || []).filter(a => a && (a.href || a.onclick));
+    mask.firstElementChild.innerHTML = `<button class="kit-x" data-kit-close aria-label="关闭">✕</button>
+      <div class="kit-scroll">${cover}
+        <div class="kit-head">${thumb}<div class="kit-t"><h2>${kesc(d.title)}</h2>${d.sub ? `<div class="kit-sub">${d.sub}</div>` : ''}
+          ${(d.tags || []).filter(Boolean).length ? `<div class="kit-tags">${d.tags.filter(Boolean).join('')}</div>` : ''}${d.big ? `<div class="kit-big">${d.big}</div>` : ''}</div></div>
+        <div class="kit-body">${d.body || ''}</div></div>
+      ${acts.length ? `<div class="kit-acts">${acts.map((a, i) => a.href
+        ? `<a class="${a.pri || (i === 0 && acts.length < 3) ? 'pri' : ''}" href="${kesc(a.href)}" ${a.self ? '' : 'target="_blank" rel="noopener"'}>${a.text}</a>`
+        : `<button class="${a.pri ? 'pri' : ''}" data-kit-act="${i}">${a.text}</button>`).join('')}</div>` : ''}`;
+    acts.forEach((a, i) => { if (!a.href) { const b = mask.querySelector(`[data-kit-act="${i}"]`); if (b) b.onclick = a.onclick; } });
+    mask.querySelector('.kit-scroll').scrollTop = 0;
+    mask.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  // 打开详情：写进地址（可分享；浏览器返回 = 关闭）
+  function open(key) {
+    const target = '#/item/' + key;
+    if (location.hash === target) return show(parse(target));
+    ensure();
+    if (parse()?.kind === 'item') history.replaceState(history.state, '', target);
+    else { mask.dataset.base = location.hash; history.pushState({ kit: 1 }, '', target); }
+    lastHash = target;
+    show(parse(target));
+  }
+  function show(r) {
+    const fn = items[r.type];
+    const d = fn && fn(r.id, r.q);
+    if (!d) { close(true); return false; }
+    render(d);
+    return true;
+  }
+  function close(silent) {
+    if (!mask || !mask.classList.contains('open')) return;
+    mask.classList.remove('open');
+    document.body.style.overflow = '';
+    if (!silent && parse()?.kind === 'item') {
+      if (history.state && history.state.kit) history.back();          // 从页面里点开的：退回去
+      else { history.replaceState(null, '', mask.dataset.base || location.pathname + location.search); lastHash = location.hash; }   // 直接打开的分享链接
+    }
+  }
+  // 当前地址是列表页时渲染列表页并返回 true；首页时返回 false
+  function route(box) {
+    if (box) listBox = box;
+    const r = parse();
+    if (r && r.kind === 'list' && lists[r.type]) { lists[r.type](r.id, r.q, listBox); return true; }
+    return false;
+  }
+  // 列表页的公共外壳：返回按钮 + 标题 + 子分类 + 排序
+  function shell({ title, note, chips, sort, sortVal, body, more }) {
+    return `<div class="kit-lhead"><button class="kit-back" data-kit-back title="返回">‹</button><h2>${kesc(title)}</h2>${note ? `<small>${note}</small>` : ''}</div>
+      ${chips || sort ? `<div class="kit-lbar"><div class="kit-chips">${(chips || []).map(c => `<a class="${c.on ? 'on' : ''}" href="${kesc(c.href)}">${kesc(c.text)}${c.count != null ? `<small>${c.count}</small>` : ''}</a>`).join('')}</div>
+        ${sort ? `<select class="kit-sel" data-kit-sort>${sort.map(([v, n]) => `<option value="${kesc(v)}" ${v === sortVal ? 'selected' : ''}>${kesc(n)}</option>`).join('')}</select>` : ''}</div>` : ''}
+      ${body}${more ? `<button class="kit-more" data-kit-more>${more}</button>` : ''}`;
+  }
+  function init(home) {
+    onHome = home;
+    document.addEventListener('click', e => {
+      const t = e.target.closest('[data-kit-item],[data-kit-go],[data-kit-back]');
+      if (!t) return;
+      const inner = e.target.closest('a[href],button,input,select,label,summary');   // 卡片里的其它按钮 / 链接（关注、复制…）优先
+      if (inner && inner !== t && t.contains(inner)) return;
+      e.preventDefault();
+      if (t.dataset.kitBack !== undefined) { fromHome && history.length > fromHome ? history.go(-fromHome) : (location.hash = ''); return; }
+      open(t.dataset.kitItem || t.dataset.kitGo);
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+    window.addEventListener('hashchange', () => {
+      const r = parse();
+      let was = parse(lastHash), steps = 1;
+      if (was && was.kind === 'item') {                                 // 从详情离开
+        const base = mask && mask.dataset.base !== undefined ? mask.dataset.base : '';
+        if (location.hash === base) { lastHash = location.hash; close(true); return; }   // 只是关掉详情，底下页面不动
+        was = parse(base); steps = 2;                                   // 在详情里点了别的列表：按详情底下那页算，返回要退两步
+      }
+      lastHash = location.hash;
+      if (r && r.kind === 'item') { show(r); return; }
+      close(true);
+      const wasHome = !was;
+      if (r && r.kind === 'list') {
+        if (wasHome) { homeY = scrollY; fromHome = steps; }
+        onHome && onHome();
+        if (wasHome || was.type !== r.type) scrollTo(0, 0);
+      } else {
+        onHome && onHome();
+        if (fromHome) { scrollTo(0, homeY); fromHome = 0; }
+      }
+    });
+    // 直接打开带 #/item/ 的链接（比如大屏跳过来）：页面数据读完后由站点调用 KIT.boot()
+  }
+  function boot() { const r = parse(); if (r && r.kind === 'item') show(r); }
+  return { item: (t, fn) => (items[t] = fn), list: (t, fn) => (lists[t] = fn), open, close, route, shell, init, boot, parse, esc: kesc,
+    // 小工具：详情里的键值格、段落、关联列表
+    kv: rows => { const r = rows.filter(x => x && x[1] != null && x[1] !== ''); return r.length ? `<div class="kit-kv">${r.map(([k, v]) => `<div><small>${kesc(k)}</small><b title="${kesc(v)}">${kesc(v)}</b></div>`).join('')}</div>` : ''; },
+    sec: (title, html, note) => html ? `<div class="kit-sec"><h4>${title}${note ? `<small>${note}</small>` : ''}</h4>${html}</div>` : '',
+    p: t => t ? `<p class="kit-p">${kesc(t)}</p>` : '',
+  };
+})();
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const store = {
@@ -277,8 +500,8 @@ function lineChart(el, series, { base = null } = {}) {
   el.innerHTML = `<div class="legend">${series.map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('')}</div>
     <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${g}${paths}<line class="cur" x1="0" x2="0" y1="${P.t}" y2="${H - P.b}" stroke="var(--line-2)" visibility="hidden"/></svg><div class="tip"></div>`;
   const svg = el.querySelector('svg'), tip = el.querySelector('.tip'), cur = el.querySelector('.cur');
-  svg.onmousemove = e => {
-    const r = svg.getBoundingClientRect(), fx = (e.clientX - r.left) / r.width * W;
+  const move = e => {
+    const r = svg.getBoundingClientRect(), fx = ((e.touches ? e.touches[0].clientX : e.clientX) - r.left) / r.width * W;
     const i = Math.max(0, Math.min(n - 1, Math.round((fx - P.l) / (W - P.l - P.r) * (n - 1))));
     cur.setAttribute('x1', x(i)); cur.setAttribute('x2', x(i)); cur.setAttribute('visibility', 'visible');
     tip.style.display = 'block';
@@ -286,7 +509,13 @@ function lineChart(el, series, { base = null } = {}) {
     const px = x(i) / W * r.width;
     tip.style.left = Math.min(r.width - tip.offsetWidth, Math.max(0, px + 12)) + 'px'; tip.style.top = '30px';
   };
-  svg.onmouseleave = () => { tip.style.display = 'none'; cur.setAttribute('visibility', 'hidden'); };
+  const hide = () => { tip.style.display = 'none'; cur.setAttribute('visibility', 'hidden'); };
+  svg.onmousemove = move; svg.onmouseleave = hide;
+  // 触屏：按住 / 滑动看数值，松手 2 秒后收起
+  let ht;
+  svg.addEventListener('touchstart', e => { clearTimeout(ht); move(e); }, { passive: true });
+  svg.addEventListener('touchmove', move, { passive: true });
+  svg.addEventListener('touchend', () => { ht = setTimeout(hide, 2000); });
 }
 
 function citySelect(id, cur) {
@@ -335,24 +564,27 @@ function renderNation() {
   MONTHS.forEach((m, i) => {
     const [u, f, d] = cnt(m), x0 = P.l + i * bw, sc = (H - P.t - P.b) / 70;
     let yy = H - P.b;
-    [[d, 'var(--down)'], [f, 'var(--flat)'], [u, 'var(--up)']].forEach(([v, col]) => { bars += `<rect x="${x0 + 1}" y="${yy - v * sc}" width="${Math.max(1, bw - 2)}" height="${v * sc}" fill="${col}" opacity=".85"><title>${mlabel(m)}：上涨 ${u} · 持平 ${f} · 下跌 ${d}</title></rect>`; yy -= v * sc; });
+    // 每个月一组，点开看该月涨跌城市名单
+    bars += `<g data-kit-item="month/${m}"><title>${mlabel(m)}：上涨 ${u} · 持平 ${f} · 下跌 ${d}（点击看名单）</title><rect class="hit" x="${x0}" y="${P.t}" width="${bw}" height="${H - P.t - P.b}"/>`;
+    [[d, 'var(--down)'], [f, 'var(--flat)'], [u, 'var(--up)']].forEach(([v, col]) => { bars += `<rect x="${x0 + 1}" y="${yy - v * sc}" width="${Math.max(1, bw - 2)}" height="${v * sc}" fill="${col}" opacity=".85"/>`; yy -= v * sc; });
+    bars += '</g>';
     if (m.endsWith('-01')) bars += `<text x="${x0}" y="${H - 6}" font-size="10.5" fill="var(--text-3)">${m.slice(0, 4)}</text>`;
   });
   [0, 35, 70].forEach(v => { const yy = H - P.b - v * (H - P.t - P.b) / 70; bars += `<text x="${P.l - 6}" y="${yy + 4}" text-anchor="end" font-size="10.5" fill="var(--text-3)">${v}</text>`; });
   const [u, f, d] = cnt(last);
-  const t1 = DATA.tiers['1'].map(c => { const s = cityStats(c, k); return `<div class="panel t1" data-city="${c}"><b>${c}</b>
+  const t1 = DATA.tiers['1'].map(c => { const s = cityStats(c, k); return `<div class="panel t1" data-kit-item="city/${c}"><b>${c}</b>
       <div class="row"><span>环比</span><span class="num ${cls(s.mom)}">${pct(s.mom)}</span></div>
       <div class="row"><span>同比</span><span class="num ${cls(s.yoy)}">${pct(s.yoy)}</span></div>
       <div class="row"><span>距高点</span><span class="num ${cls(s.fromPeak)}">${pct(s.fromPeak)}</span></div></div>`; }).join('');
   $('#view-nation').innerHTML = `<div class="filters"><div class="seg" id="natSeg">${['used', 'new'].map(x => `<button data-nk="${x}" class="${x === k ? 'active' : ''}">${KIND[x]}</button>`).join('')}</div></div>
     <div class="panel hero"><div class="hero-k">${mlabel(last)} · ${KIND[k]}</div>
       <div class="hero-big">70 城中 <span class="up">${u}</span> 城上涨、${f} 城持平、<span class="down">${d}</span> 城下跌</div>
-      <div class="hero-sub">上涨城市数越多，越接近「止跌回稳」。下图是每个月的分布，悬停看具体数字。</div></div>
-    <div class="section-title">环比涨跌城市数<small>红 = 上涨，灰 = 持平，绿 = 下跌</small></div>
+      <div class="hero-sub">上涨城市数越多，越接近「止跌回稳」。下图是每个月的分布，点某个月看涨跌城市名单。</div></div>
+    <div class="section-title">环比涨跌城市数<small>红 = 上涨，灰 = 持平，绿 = 下跌 · 点柱子看名单</small><a class="kit-morelink" style="margin-left:auto" href="#/item/month/${last}" data-kit-item="month/${last}">本月名单 →</a></div>
     <div class="panel chart bars"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${bars}</svg></div>
     <div class="section-title">一线 · 二线 · 三线同比<small>各组城市同比的简单平均（去年同月 = 100）</small></div>
     <div class="panel chart" id="tierChart"></div>
-    <div class="section-title">一线城市<small>点卡片看城市详情</small></div>
+    <div class="section-title">一线城市<small>点卡片看城市详情</small><a class="kit-morelink" style="margin-left:auto" href="#rank" data-v="rank">70 城排行 →</a></div>
     <div class="tier1">${t1}</div>`;
   const tierSeries = (t, name, color) => ({ name, color, points: MONTHS.map(m => { const vs = Object.entries(DATA.months[m][k]).filter(([c]) => tierOf(c) === t).map(([, r]) => r[1]); return [m, vs.length ? +(vs.reduce((a, b) => a + b, 0) / vs.length).toFixed(2) : null]; }) });
   lineChart($('#tierChart'), [tierSeries(1, '一线', 'var(--s1)'), tierSeries(2, '二线', 'var(--s2)'), tierSeries(3, '三线', 'var(--s3)')], { base: 100 });
@@ -370,7 +602,7 @@ function renderRank() {
       ${[[0, '全部 70 城'], [1, '一线'], [2, '二线'], [3, '三线']].map(([t, n]) => `<button class="chip ${state.rankTier === t ? 'active' : ''}" data-tier="${t}">${n}</button>`).join('')}
       <span class="spacer"></span><span class="muted">${mlabel(MONTHS.at(-1))} · 点表头排序，点城市看详情</span></div>
     <div class="panel wrap"><table class="t"><thead><tr><th>#</th>${th('c', '城市')}${th('mom', '环比')}${th('yoy', '同比')}${th('cum', '比 2021/12 累计')}${th('fromPeak', '距高点')}${th('streak', '连续')}</tr></thead>
-      <tbody>${rows.map((r, i) => `<tr><td class="muted">${i + 1}</td><td class="c" data-city="${r.c}">${r.c}<small>${['', '一线', '二线', '三线'][r.t]}</small></td>
+      <tbody>${rows.map((r, i) => `<tr data-kit-item="city/${r.c}"><td class="muted">${i + 1}</td><td class="c">${r.c}<small>${['', '一线', '二线', '三线'][r.t]}</small></td>
         <td><span class="heat ${cls(r.mom)}" style="${heat(r.mom)}">${pct(r.mom)}</span></td><td><span class="heat ${cls(r.yoy)}" style="${heat(r.yoy)}">${pct(r.yoy)}</span></td>
         <td class="${cls(r.cum)}">${pct(r.cum)}</td><td class="${cls(r.fromPeak)}">${pct(r.fromPeak)}</td>
         <td class="${r.dir > 0 ? 'up' : r.dir < 0 ? 'down' : 'flat'}">${r.dir ? `${r.dir > 0 ? '涨' : '跌'} ${r.streak} 月` : '持平'}</td></tr>`).join('')}</tbody></table></div>`;
@@ -386,7 +618,7 @@ function renderCompare() {
       <span class="muted">最多 4 个</span></div>
     <div class="panel chart" id="cmpChart"></div>
     <div class="panel wrap" style="margin-top:14px"><table class="t"><thead><tr><th>城市</th><th>环比</th><th>同比</th><th>比 2021/12 累计</th><th>距高点</th></tr></thead><tbody>
-      ${state.cmp.map((c, i) => { const s = cityStats(c, k); return `<tr><td class="c" data-city="${c}"><span style="color:${colors[i]}">●</span> ${c}</td><td class="${cls(s.mom)}">${pct(s.mom)}</td><td class="${cls(s.yoy)}">${pct(s.yoy)}</td><td class="${cls(s.cum)}">${pct(s.cum)}</td><td class="${cls(s.fromPeak)}">${pct(s.fromPeak)}</td></tr>`; }).join('')}
+      ${state.cmp.map((c, i) => { const s = cityStats(c, k); return `<tr data-kit-item="city/${c}"><td class="c"><span style="color:${colors[i]}">●</span> ${c}</td><td class="${cls(s.mom)}">${pct(s.mom)}</td><td class="${cls(s.yoy)}">${pct(s.yoy)}</td><td class="${cls(s.cum)}">${pct(s.cum)}</td><td class="${cls(s.fromPeak)}">${pct(s.fromPeak)}</td></tr>`; }).join('')}
     </tbody></table></div>`;
   if (state.cmp.length) lineChart($('#cmpChart'), state.cmp.map((c, i) => ({ name: c, color: colors[i], points: chain(c, k) })), { base: 100 });
   else $('#cmpChart').innerHTML = '<div class="empty">添加城市开始对比</div>';
@@ -410,7 +642,68 @@ function renderAside() {
     `<div class="muted" style="margin-top:6px">共 ${MONTHS.length} 个月：${mshort(MONTHS[0])} – ${mshort(last)}</div>`;
 }
 
+// ── 详情（右侧抽屉）──
+const tierName = c => ['', '一线', '二线', '三线'][tierOf(c)];
+const kvc = rows => `<div class="kit-kv">${rows.map(([k, v, c]) => `<div><small>${esc(k)}</small><b class="num ${c || ''}">${v}</b></div>`).join('')}</div>`;
+const streakText = s => s.dir ? `${s.dir > 0 ? '涨' : '跌'} ${s.streak} 月` : '持平';
+// 关掉抽屉后切到「我的城市」：从页面点开的要等 history.back 完成再切，直接打开的链接同步切
+function setMyCity(c) {
+  state.city = c; store.set('city', c);
+  const h = () => go('city');
+  addEventListener('hashchange', h, { once: true });
+  KIT.close();
+  if (KIT.parse()?.kind !== 'item') { removeEventListener('hashchange', h); go('city'); }
+}
+KIT.item('city', c => {
+  if (!CITIES.includes(c)) return null;
+  const last = MONTHS.at(-1), L = DATA.months[last];
+  const S = { new: cityStats(c, 'new'), used: cityStats(c, 'used') }, u = S.used;
+  // 二手同比在 70 城里的名次（从高到低）
+  const rank = CITIES.map(x => cityStats(x, 'used').yoy).sort((a, b) => b - a).indexOf(u.yoy) + 1;
+  const block = k => { const s = S[k]; return kvc([['环比', pct(s.mom), cls(s.mom)], ['同比', pct(s.yoy), cls(s.yoy)], ['比 2021/12 累计', pct(s.cum), cls(s.cum)],
+    ['距高点', pct(s.fromPeak), cls(s.fromPeak)], ['高点月份', mlabel(s.peakMonth)], ['连续', streakText(s), s.dir > 0 ? 'up' : s.dir < 0 ? 'down' : '']]); };
+  const sz = k => (L[k + '_size'] || {})[c];
+  const sizeRows = SIZE.map((n, i) => `<tr><td>${n}</td>${['new', 'used'].map(k => { const r = sz(k)?.[i]; return r ? `<td class="${cls(r[0] - 100)}">${pct(idx2pct(r[0]))}</td><td class="${cls(r[1] - 100)}">${pct(idx2pct(r[1]))}</td>` : '<td>—</td><td>—</td>'; }).join('')}</tr>`).join('');
+  // 同档城市里累计涨跌最接近的几个
+  const peers = CITIES.filter(x => x !== c && tierOf(x) === tierOf(c)).map(x => ({ c: x, ...cityStats(x, 'used') })).sort((a, b) => Math.abs(a.cum - u.cum) - Math.abs(b.cum - u.cum)).slice(0, 6);
+  setTimeout(() => {
+    const el = document.getElementById('kitCityChart');
+    if (!el) return;
+    const momOf = (k, i) => { const r = DATA.months[MONTHS[i]][k][c]; return r ? `环比 ${pct(idx2pct(r[0]))}` : ''; };
+    lineChart(el, [{ name: '新建商品住宅', color: 'var(--s1)', points: chain(c, 'new'), fmt: i => momOf('new', i) },
+      { name: '二手住宅', color: 'var(--s2)', points: chain(c, 'used'), fmt: i => momOf('used', i) }], { base: 100 });
+  });
+  return { title: c, sub: `${tierName(c)}城市 · ${mlabel(last)} · 统计局 ${esc(L.published || '')} 发布`, thumbIcon: '🏠', thumbBg: 'color-mix(in srgb, var(--accent) 22%, transparent)',
+    tags: [`<span>二手同比 70 城第 ${rank}</span>`, state.city === c ? '<span>我的城市</span>' : ''],
+    big: `<b class="${cls(u.cum)}">${pct(u.cum)}</b><span class="muted">二手住宅比 2021 年底累计 · 距高点 ${pct(u.fromPeak)}</span>`,
+    body: KIT.sec(KIND.new, block('new')) + KIT.sec(KIND.used, block('used'))
+      + KIT.sec('累计走势', `<div class="chart" id="kitCityChart"></div>`, `${MONTHS.length} 个月 · 2021/12 = 100`)
+      + KIT.sec('按面积分段', `<div class="wrap"><table class="t"><thead><tr><th>面积</th><th>新建环比</th><th>新建同比</th><th>二手环比</th><th>二手同比</th></tr></thead><tbody>${sizeRows}</tbody></table></div>`, mlabel(last))
+      + KIT.sec(`${tierName(c)}城市里走势相近的`, `<div class="kit-rows">${peers.map(p => `<div class="kit-row" data-kit-go="city/${p.c}"><span class="kit-rt">${p.c}</span>
+          <span class="kit-rm">二手累计 <span class="${cls(p.cum)}">${pct(p.cum)}</span> · 同比 <span class="${cls(p.yoy)}">${pct(p.yoy)}</span></span></div>`).join('')}</div>`),
+    acts: [{ text: state.city === c ? '查看我的城市' : '设为我的城市', pri: true, onclick: () => setMyCity(c) }, { text: '统计局原文 ↗', href: L.url }] };
+});
+KIT.item('month', m => {
+  const M = DATA.months[m]; if (!M) return null;
+  const i = MONTHS.indexOf(m), prev = MONTHS[i - 1], next = MONTHS[i + 1];
+  const group = k => {
+    const rs = Object.entries(M[k]).map(([c, r]) => ({ c, mom: idx2pct(r[0]) }));
+    const list = (arr, title) => arr.length ? `<div class="hero-k" style="margin:10px 0 6px">${title} ${arr.length} 城</div><div class="kit-cities">${arr.map(r => `<span data-kit-go="city/${r.c}">${r.c}<small class="${cls(r.mom)}">${pct(r.mom)}</small></span>`).join('')}</div>` : '';
+    return list(rs.filter(r => r.mom > 0).sort((a, b) => b.mom - a.mom), '上涨') + list(rs.filter(r => r.mom === 0), '持平') + list(rs.filter(r => r.mom < 0).sort((a, b) => a.mom - b.mom), '下跌');
+  };
+  const cnt = (k, mm = m) => { const v = Object.values(DATA.months[mm][k]).map(r => r[0]); return [v.filter(x => x > 100).length, v.filter(x => x === 100).length, v.filter(x => x < 100).length]; };
+  const [uu, uf, ud] = cnt('used'), [nu, nf, nd] = cnt('new');
+  return { title: `${mlabel(m)} 70 城房价`, sub: M.published ? `国家统计局 ${esc(M.published)} 发布` : '国家统计局', thumbIcon: '📅', thumbBg: 'color-mix(in srgb, var(--accent) 22%, transparent)',
+    big: `<b><span class="up">${uu}</span> / ${uf} / <span class="down">${ud}</span></b><span class="muted">二手住宅 上涨 / 持平 / 下跌城市数</span>`,
+    body: KIT.sec(KIND.new, group('new'), `上涨 ${nu} · 持平 ${nf} · 下跌 ${nd}`) + KIT.sec(KIND.used, group('used'), `上涨 ${uu} · 持平 ${uf} · 下跌 ${ud}`)
+      + KIT.sec('前后月份', `<div class="kit-rows">${[[next, '下个月'], [prev, '上个月']].filter(x => x[0]).map(([mm, n]) => { const [a, , b] = cnt('used', mm);
+          return `<div class="kit-row" data-kit-go="month/${mm}"><span class="kit-rt">${n} · ${mlabel(mm)}</span><span class="kit-rm">二手 上涨 ${a} · 下跌 ${b}</span></div>`; }).join('')}</div>`),
+    acts: [{ text: '统计局原文 ↗', href: M.url }] };
+});
+
 function render() {
+  const hv = location.hash.slice(1);                          // 单段 hash 视图（#city 等）；#/item/ 由 kit 处理
+  if (VIEWS.includes(hv)) state.view = hv;
   document.querySelectorAll('#viewSeg button').forEach(b => b.classList.toggle('active', b.dataset.v === state.view));
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + state.view));
   ({ city: renderCity, nation: renderNation, rank: renderRank, compare: renderCompare })[state.view]();
@@ -420,8 +713,7 @@ function go(view) { state.view = view; store.set('view', view); history.replaceS
 
 document.addEventListener('click', ev => {
   let b;
-  if ((b = ev.target.closest('#viewSeg button'))) go(b.dataset.v);
-  else if ((b = ev.target.closest('[data-city]'))) { state.city = b.dataset.city; store.set('city', state.city); go('city'); }
+  if ((b = ev.target.closest('#viewSeg button, a[data-v]'))) { ev.preventDefault(); go(b.dataset.v); }
   else if ((b = ev.target.closest('[data-nk]'))) { state.natKind = b.dataset.nk; store.set('natKind', state.natKind); render(); }
   else if ((b = ev.target.closest('[data-rk]'))) { state.rankKind = b.dataset.rk; store.set('rankKind', state.rankKind); render(); }
   else if ((b = ev.target.closest('[data-tier]'))) { state.rankTier = +b.dataset.tier; render(); }
@@ -451,6 +743,7 @@ async function load() {
     const u = new Date(DATA.updated);
     $('#updated').textContent = `更新于 ${u.getMonth() + 1}/${u.getDate()} ${String(u.getHours()).padStart(2, '0')}:${String(u.getMinutes()).padStart(2, '0')}`;
     render();
+    KIT.boot();                                                 // 直接打开 #/item/city/北京 这类链接
   } catch (err) {
     $('#updated').textContent = '数据读取失败';
     console.error(err);
@@ -458,6 +751,7 @@ async function load() {
 }
 $('#reloadBtn').onclick = load;
 let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => DATA && render(), 200); });   // 图表按宽度重画
+KIT.init(() => DATA && render());
 load();
 </script>
 </body>
