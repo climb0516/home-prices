@@ -1,0 +1,21 @@
+{
+  "city": "杭州",
+  "scope": "杭州市区（含富阳、临安）二手房网签套数",
+  "source": "杭州贝壳研究院（杭州网 / 每日商报 / 潮新闻转载）",
+  "note": "手动维护：每月从新闻原文摘录，url 为摘录出处；avg 为原文给出的全市二手住宅成交 / 网签均价（元/㎡），没给的为 null",
+  "months": {
+    "2025-09": { "deals": 6033, "avg": null, "url": "https://hznews.hangzhou.com.cn/jingji/content/2025-10/28/content_9111516.htm" },
+    "2025-10": { "deals": 5934, "avg": 26773, "url": "https://mdaily.hangzhou.com.cn/mrsb/2025/11/06/article_detail_3_20251106A123.html" },
+    "2025-11": { "deals": 6561, "avg": null, "url": "https://house.hangzhou.com.cn/content/2025-12/04/content_9137001.html" },
+    "2025-12": { "deals": 6862, "avg": 24845, "url": "https://hznews.hangzhou.com.cn/jingji/content/2026-02/05/content_9173672.htm" },
+    "2026-01": { "deals": 6987, "avg": 25096, "url": "https://hznews.hangzhou.com.cn/jingji/content/2026-02/05/content_9173672.htm" },
+    "2026-02": { "deals": 3370, "avg": null, "url": "https://hznews.hangzhou.com.cn/jingji/content/2026-03/27/content_9197587.htm", "tag": "春节" },
+    "2026-03": { "deals": 9356, "avg": null, "url": "https://hznews.hangzhou.com.cn/jingji/content/2026-06/27/content_9246224.htm" },
+    "2026-04": { "deals": 9968, "avg": null, "url": "https://hznews.hangzhou.com.cn/jingji/content/2026-06/27/content_9246224.htm" },
+    "2026-05": { "deals": 9087, "avg": null, "url": "https://hznews.hangzhou.com.cn/jingji/content/2026-06/27/content_9246224.htm" },
+    "2026-06": { "deals": 7711, "avg": null, "url": "https://hznews.hangzhou.com.cn/jingji/content/2026-07/30/content_9267745.htm" },
+    "2026-07": { "deals": 7107, "avg": 24900, "url": "https://hznews.hangzhou.com.cn/jingji/content/2026-08/06/content_9273182.htm" },
+    "2026-08": { "deals": 6337, "avg": 23400, "url": "https://hznews.hangzhou.com.cn/jingji/content/2026-09/02/content_9296065.htm" },
+    "2026-09": { "deals": 6746, "avg": 23200, "url": "https://hznews.hangzhou.com.cn/jingji/content/2026-10/27/content_9355775.htm" }
+  }
+}

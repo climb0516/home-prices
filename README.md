@@ -32,6 +32,7 @@
 - **杭州小区**（`#map`）：高德底图上的杭州成交活跃小区（每月约 500 个）
   - 圆点按成交均价或环比着色，悬停看均价和环比，点开看历月均价走势、同比、同区县均价相近的小区
   - 筛选月份、区县，搜小区名；各区县的小区数、均价中位数、上涨 / 下跌占比；小区列表可按均价、上月、环比排序
+  - 全市二手房每月网签套数：概况栏显示当月套数和环比，柱状图看每月走势，点柱子切换地图月份（只有全市数据，没有单个小区的成交套数）
   - 详情地址可分享：`#/item/xq/<区县>|<小区>`
 - 右侧挂件：本月涨跌城市数、下次发布倒计时（统计局通常次月 15–20 日发布）、指标说明、来源状态
 - 右上角：↻ 重新读取数据，⚡ 跳转 GitHub Actions 手动触发抓取，☾ 深浅色；手机适配，图表按屏幕宽度重画
@@ -80,6 +81,7 @@ GitHub Pages（切到「杭州小区」时才加载 Leaflet 和 xiaoqu.json，�
 | 统计局发布稿表 3～6 | 网页解析（HTML 表格） | 70 城 × 3 个面积段；只保留最近 13 个月 | 90㎡ 以下 / 90–144㎡ / 144㎡ 以上 |
 | [杭州网](https://hznews.hangzhou.com.cn/jingji/)「杭州二手房价涨跌榜」 | 网页解析 + 图片 OCR（macOS Vision） | 每月一期，每期约 300～600 个小区；目前 8 期（2025-09、2025-12、2026-02、04、05、06、07、09），共 1278 个小区 | 潮新闻美好生活研究院发布，表格注明数据来源中指研究院；只在本机运行 |
 | [高德开放平台](https://lbs.amap.com/api/webservice/guide/api/georegeo) | 接口（地理编码 v3/geocode/geo，查不准时用 POI 搜索 v5/place/text） | 只查新小区；POI 搜索每次运行最多 80 次（`SEARCH_BUDGET`） | 高德坐标系，和底图一致；结果缓存在 `xiaoqu_geo.json` |
+| 杭州贝壳研究院月度数据（杭州网 / 每日商报 / 潮新闻转载） | 手动摘录新闻原文 | 每月一条：杭州市区（含富阳、临安）二手房网签套数，部分月份有全市成交均价；目前 2025-09～2026-09 共 13 个月 | 存在 `hz_market.json`，每条附出处；只有全市数据，没有单个小区的成交套数 |
 
 **配置位置**
 - `scraper.py` 顶部：`BASE`（列表地址）、`START = "2022-01"`（回填起点）、`SIZE_MONTHS = 13`（面积分段保留月数）、`TIER1` / `TIER2`（一线 / 二线城市名单，其余为三线）；列表页匹配标题的正则在 `list_page()`
@@ -173,6 +175,16 @@ GitHub Pages（切到「杭州小区」时才加载 Leaflet 和 xiaoqu.json，�
 }
 ```
 
+**hz_market.json**（全市二手房网签套数，手动维护）
+
+```
+{
+  "city": "杭州", "scope": "杭州市区（含富阳、临安）二手房网签套数", "source": "杭州贝壳研究院（…转载）",
+  "months": { "2026-09": { "deals": 6746, "avg": 23200, "url": "摘录出处" },     // avg：全市均价 元/㎡，原文没给为 null
+              "2026-02": { "deals": 3370, "avg": null, "url": "…", "tag": "春节" } } // tag 显示在柱子上方
+}
+```
+
 **xiaoqu_geo.json**：坐标缓存，键为「区县|小区名」，值为 `{ "loc": [lng, lat], "how": "geo:住宅区" / "poi", "addr": "…" }` 或 `{ "miss": 原因, "retry": true }`（带 retry 的下次重查）。
 
 **xiaoqu_fix.json**（人工修正，可选）：
@@ -198,7 +210,7 @@ GitHub Pages（切到「杭州小区」时才加载 Leaflet 和 xiaoqu.json，�
 
 ## 前端
 
-单页 `index.html`，原生 JS，无构建；`fetch('data.json?t=<时间戳>', { cache: 'no-store' })` 读取数据，切到「杭州小区」时再从 cdnjs 加载 Leaflet 1.9.4 和 `xiaoqu.json`。
+单页 `index.html`，原生 JS，无构建；`fetch('data.json?t=<时间戳>', { cache: 'no-store' })` 读取数据，切到「杭州小区」时再从 cdnjs 加载 Leaflet 1.9.4、`xiaoqu.json` 和 `hz_market.json`。
 
 **kit 详情抽屉**（内联在页面里的通用组件 `KIT`）
 - 点击城市、月份柱、小区打开详情抽屉：电脑端从右侧滑出，手机端（≤ 760px）从底部升起；`Esc`、点遮罩或浏览器返回关闭
@@ -251,7 +263,8 @@ GitHub Pages（切到「杭州小区」时才加载 Leaflet 和 xiaoqu.json，�
 | `ocr.swift`（编译成 `.ocr_bin`） | `ocr <图片>` 整图；或 `ocr <图片> <y0> <y1> <x0> <x1> <倍数>` 只识别一块区域 | 标准输出：第一行 `W\tH`（原图宽高），之后每段文字一行 `y\tx\th\ttext`（中心点坐标、高度，原点左上角，原图像素） |
 | `xiaoqu_fix.json` | 人工核对后手写 | 被 `xiaoqu.py` 读取，修正名字、剔除行、标记已核对、手动坐标 |
 | `.cache/xiaoqu/review.txt` | `xiaoqu.py` 生成 | 每行 `月份 图片 y=行位置 区县\|小区 本月= 上月= 环比= ⚠原因`，供人工核对 |
-| `index.html` | `xiaoqu.json` | 「杭州小区」视图（`#map`）和小区详情抽屉 `#/item/xq/<区县>\|<小区>` |
+| `hz_market.json` | 每月从新闻原文手动摘录（统一用杭州贝壳研究院口径，写入前核对原文） | 被 `index.html` 读取：概况栏「全市二手房网签」和「全市二手房成交量」柱状图 |
+| `index.html` | `xiaoqu.json`、`hz_market.json`（缺了不影响地图） | 「杭州小区」视图（`#map`）和小区详情抽屉 `#/item/xq/<区县>\|<小区>` |
 
 `.ocr_bin` 不用手动编译：`ocr.swift` 比它新时 `xiaoqu.py` 自动 `swiftc -O` 重编。改了解析逻辑后，删掉对应的 `.tsv`（整图识别）或 `.names.json` / `.prices.json`（补识别）才会重新识别。
 
