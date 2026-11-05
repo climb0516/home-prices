@@ -186,7 +186,13 @@ GitHub Pages（切到「杭州小区」时才加载 Leaflet 和 xiaoqu.json，�
 }
 ```
 
-**不提交的本地文件**（.gitignore）：`.cache/`（配图、OCR 结果、`review.txt`）、`.ocr_bin`（OCR 编译产物）、`.amap_key`。
+**不提交的本地文件**（.gitignore）：
+- `.cache/xiaoqu/<文章编号>/`：`00.jpg`、`01.jpg`…（文章配图），同名 `.tsv`（整图 OCR 结果，首行 `W\tH`，之后每行 `y\tx\th\ttext`），`.names.json` / `.prices.json`（补识别结果，键为行的 y 坐标，值为名字字符串 / [本月, 上月] 识别字符串）
+- `.cache/xiaoqu/review.txt`：待人工核对的行
+- `.ocr_bin`：`ocr.swift` 编译产物
+- `.amap_key`：高德 key
+
+**小区相关源码**：`xiaoqu.py`（抓取 + 解析 + 坐标 + 输出）、`ocr.swift`（macOS Vision 识别），流程见下方「Skill 流程」。
 
 ---
 
@@ -214,6 +220,94 @@ GitHub Pages（切到「杭州小区」时才加载 Leaflet 和 xiaoqu.json，�
 - SVG 折线图按容器宽度重画，鼠标悬停 / 手指按住看每月数值
 - 杭州小区地图：高德瓦片底图 + Leaflet 圆点；按成交均价（6 档：1.5 万以下 … 7 万以上）或环比（6 档：跌 5% 以上 … 涨 5% 以上）着色；月份、区县筛选、搜小区名；区县统计表（小区数、均价中位数、上涨 / 下跌占比、最高）；小区列表按均价 / 上月 / 环比 / 名称排序，每次显示 60 个
 - 右上角：↻ 重新读取数据，⚡ 跳转 GitHub Actions 手动触发抓取，☾ / ☀ 深浅色（默认跟随系统）；颜色红涨绿跌
+
+---
+
+## Skill 流程（/go-xiaoqu-update）
+
+「杭州小区」地图由 Claude Code skill `/go-xiaoqu-update`（`~/.claude/skills/go-xiaoqu-update/SKILL.md`）每月维护一次，只能在 macOS 本机执行，不在 GitHub Actions 里。用户说「更新杭州小区 / 更新小区房价 / 涨跌榜出了」时触发。
+
+**用到的技术**
+
+| 技术 | 用途 |
+|---|---|
+| WebSearch（限定 hangzhou.com.cn） | 找杭州网最新一期「杭州二手房价涨跌榜」文章 |
+| Python 3 标准库（`xiaoqu.py`） | 下载文章分页和配图、解析识别结果、环比校验、调高德接口、合并别名、写 json |
+| Swift + macOS Vision（`ocr.swift` → `.ocr_bin`） | 表格图片文字识别，`VNRecognizeTextRequest`，精确模式，语言 zh-Hans + en-US，关闭语言纠正 |
+| 高德 Web 服务 | 地理编码 `v3/geocode/geo`，查不准时 POI 搜索 `v5/place/text` |
+| `sips`（macOS 自带） | 人工核对时按行裁出原图 |
+| `python3 -m http.server` + Chrome | 本机预览 `http://localhost:8802/?v=<随机数>#map` |
+| git + GitHub Pages | 推送上线 |
+
+**数据来源**
+- 杭州网「杭州二手房价涨跌榜」：潮新闻美好生活研究院每月一期，表格注明数据来源中指研究院；文章地址形如 `https://hznews.hangzhou.com.cn/jingji/content/YYYY-MM/DD/content_NNNNNNN.htm`（带 `_0`、`_8` 分页后缀也可，脚本会去掉）。每期 8 个分页，每页一张长图，一个区县一张表，列为 小区、本月成交均价、上月成交均价、环比；一般次月下旬刊登（9 月数据在 10 月 27 日刊登）。house.hangzhou.com.cn 上的同名文章是转载，不重复登记
+- 高德坐标：高德坐标系，和页面底图一致；key 依次读环境变量 `AMAP_KEY` → 本目录 `.amap_key` → `../hz-weekend/.amap_key`，不打印、不写进会提交的文件
+
+**脚本与文件（输入 → 输出）**
+
+| 脚本 / 文件 | 输入 | 输出 |
+|---|---|---|
+| `xiaoqu.py <文章网址> ...` | 新文章网址（可多个）；不带参数时用 `xiaoqu.json` 里已登记的 `articles`；`xiaoqu_fix.json`；`xiaoqu_geo.json`；高德 key | `xiaoqu.json`、`xiaoqu_geo.json`、`.cache/xiaoqu/<文章编号>/` 下的图片和识别缓存、`.cache/xiaoqu/review.txt`；终端最后一行「小区 N 个，有坐标 X，未定位 Y；待核对 Z 行」 |
+| `ocr.swift`（编译成 `.ocr_bin`） | `ocr <图片>` 整图；或 `ocr <图片> <y0> <y1> <x0> <x1> <倍数>` 只识别一块区域 | 标准输出：第一行 `W\tH`（原图宽高），之后每段文字一行 `y\tx\th\ttext`（中心点坐标、高度，原点左上角，原图像素） |
+| `xiaoqu_fix.json` | 人工核对后手写 | 被 `xiaoqu.py` 读取，修正名字、剔除行、标记已核对、手动坐标 |
+| `.cache/xiaoqu/review.txt` | `xiaoqu.py` 生成 | 每行 `月份 图片 y=行位置 区县\|小区 本月= 上月= 环比= ⚠原因`，供人工核对 |
+| `index.html` | `xiaoqu.json` | 「杭州小区」视图（`#map`）和小区详情抽屉 `#/item/xq/<区县>\|<小区>` |
+
+`.ocr_bin` 不用手动编译：`ocr.swift` 比它新时 `xiaoqu.py` 自动 `swiftc -O` 重编。改了解析逻辑后，删掉对应的 `.tsv`（整图识别）或 `.names.json` / `.prices.json`（补识别）才会重新识别。
+
+**识别算法**
+1. 整图识别（`ocr.swift`）：长图整张识别会被缩小导致小字丢失，所以切成 1000 像素高的段、段间重叠 150 像素分别识别，每段只保留中心点落在本段核心区的文字，避免重复
+2. 表格解析（`xiaoqu.py` 的 `parse_image()`）：
+   - 标题正则 `TITLE` 取月份和区县（区县须在 `ADCODE` 的 13 个区县里；表格跨图片续接时沿用上一张的区县）
+   - 价格数字（4～6 位，可带千分位、位于图宽 25% 以右）按横坐标最大间隔（> 图宽 8%）分成本月 / 上月两列
+   - 以价格为锚点分行：行高 = 相邻锚点间距（> 20 像素）的中位数，容差 = 行高 × 0.45
+   - 价格列左侧图宽 8% 以外的文字拼成小区名，去掉表头词（成交均价 / 环比 / 元/ / 涨跌情况）和「潮新闻 NEWS」水印残留
+3. 环比校验：环比一律用两个均价重算 `round((本月 / 上月 − 1) × 100, 1)`；与识别出的 % 相差 > 0.15 打「环比识别≠计算」标记
+4. 补识别（`ocr.swift` 区域模式：裁剪 → 放大 → 灰度 → 亮度 ≥ 150 的像素变白，去掉压在字上的浅蓝水印）：
+   - `refine_prices()`：缺本月均价、重算环比绝对值 > 25%、或与识别值对不上的行，裁出两个均价格（倍数 ≥ 3）重新识别，缓存 `.prices.json`；仍 > 25% 标「环比过大」
+   - `refine_names()`：名字为空或含非中文字符的行，裁出名字格重新识别，缓存 `.names.json`
+5. 月份 `month_of()`：标题月份大于刊登月份时算作上一年；一期内取出现最多的标题月份
+6. 入库过滤：`drop` 里的行丢弃，`rename` 改名；有标记且不在 `ok` 名单的行写进 `review.txt`，其中「名称」「缺本月」两类不入库
+
+**坐标查询算法（`geocode()`）**
+1. 只查新小区（`xiaoqu_geo.json` 没有的，或上次标了 `retry` 的）；`xiaoqu_fix.json` 的 `geo` 手动坐标优先
+2. 先地理编码「杭州市 + 区县 + 小区名」（city=330100），返回级别在 `GEO_LEVELS`（住宅区、兴趣点、门牌号、单元号、村庄）且区县一致才采用
+3. 否则用 POI 搜索：限定区县 adcode、`city_limit=true`、类型 `120300|120000`、取 1 条，返回区县一致才采用；每次运行最多 80 次（`SEARCH_BUDGET`），超出的标 `retry` 下次再查
+4. 每次请求间隔 0.25 秒；遇到 LIMIT / QUOTA / INVALID_USER_KEY / USERKEY_PLAT_NOMATCH 停止，已查的结果每 100 个落盘一次，下次不带参数运行接着查
+5. 别名合并 `merge_aliases()`：坐标完全相同、名字互相包含、从没在同一期同时出现、名字不含 别墅 / 排屋 / 叠墅 / 洋房 / 公寓 / 括号、每期均价与主名字最近一期相差 < 15% → 合并到出现期数最多的名字
+
+**xiaoqu_fix.json 结构**
+
+```
+{
+  "rename": { "区县|错名": "正名", "月份|区县|错名": "只改这一期的正名" },
+  "drop":   [ "区县|不是小区的行", "月份|区县|某行" ],      // 汇总行、均价认错的行
+  "ok":     [ "月份|区县|小区" ],                          // 核对过没问题（如环比只是丢了负号 / 小数点），不再进 review.txt
+  "geo":    { "区县|小区": [lng, lat] }                     // 手动坐标（高德坐标系）
+}
+```
+
+当前文件里有 13 条 `rename`、0 条 `drop`、10 条 `ok`、0 条 `geo`。均价数字认错时没有按数字修正的字段，只能加进 `drop`。
+
+**步骤**
+1. 找新的一期（只读）：列出 `xiaoqu.json` 已登记的月份，WebSearch 搜比最新月份更新的期次（中间漏掉的可一起补）；告诉用户找到的期次和预计耗时（识别约 30 秒一期，新小区查坐标约每 100 个 1 分钟），等用户回复「执行」
+2. 跑脚本：`python3 xiaoqu.py <文章网址1> <文章网址2>`；正常每期 8 张图、300～600 个小区。图片不是 8 张或小区数远低于 300 多半是版式变了，需看 `.tsv` 调整 `parse_image()`；「没识别出月份」要改 `TITLE` 正则；「高德额度 / key 问题」第二天不带参数再跑
+3. 逐行核对：读 `review.txt`，每行用 `sips --cropToHeightWidth 100 1181 --cropOffset <y-50> 0 <图片> --out <临时目录>/cell.jpg` 裁出原图查看，按情况写进 `xiaoqu_fix.json` 的 `ok` / `rename` / `drop`；再查新增小区名里的错字（同区县、与已有名字只差一个字、从没同期出现、均价相差 15% 以内的大多是错字；朝晖一区～九区、翠苑一区～五区、万科未来城一二三期这类编号小区是真实不同小区）；不带参数重跑直到「待核对 0 行」，并检查输出里的「合并别名」有没有合并错
+4. 本机预览：`python3 -m http.server 8802 --bind 127.0.0.1`，Chrome 打开 `http://localhost:8802/?v=<随机数>#map`，确认月份下拉默认是新的一期、小区数和脚本输出一致、地图点没飞到郊外或钱塘江、新小区详情抽屉和走势图正常、控制台没报错；看完 `pkill -f "http.server 8802"`
+5. 推送上线（需用户明确同意，如回复「推上线」）：
+
+```
+git add xiaoqu.json xiaoqu_geo.json xiaoqu_fix.json
+git commit -m "data: 杭州小区 <月份> 涨跌榜"
+git pull --rebase      # 远端常有 Actions 机器人更新 data.json 的提交
+git push
+```
+
+   改了 `xiaoqu.py` 或 `index.html` 也一起提交。推送后每 20 秒用 curl 查一次线上 `xiaoqu.json` 的最新月份，最多 3 分钟（Pages 部署通常不到 1 分钟）
+6. 汇总：新增期次和各期小区数、新出现 / 未定位的小区数、改了哪些识别错误、线上地址 https://climb0516.github.io/home-prices/#map、改动文件清单
+
+**注意**
+- 不使用链家、贝壳、我爱我家的数据：成交价只在 App 里显示，网页翻页每页都要人机验证，也不尝试绕过
 
 ---
 
