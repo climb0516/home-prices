@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="dark light">
   <title>70 城房价 · Home Prices</title>
-  <meta name="description" content="国家统计局 70 个大中城市新建商品住宅、二手住宅价格指数：环比、同比、累计涨跌、城市排行与对比">
+  <meta name="description" content="国家统计局 70 个大中城市新建商品住宅、二手住宅价格指数：环比、同比、累计涨跌、城市排行与对比；杭州成交活跃小区的成交均价地图">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -155,6 +155,32 @@
     .dot.bad { background: var(--up); }
     .empty { padding: 30px; text-align: center; color: var(--text-3); }
 
+    /* 小区地图 */
+    body.mapmode .layout { grid-template-columns: minmax(0,1fr); }
+    body.mapmode .aside { display: none; }
+    .xq-hero { padding: 16px 20px; display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: baseline; }
+    .xq-hero .stat .v { font-size: 22px; }
+    .xq-map { height: min(68vh, 720px); margin-top: 14px; border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); position: relative; z-index: 0; }
+    .xq-map .leaflet-container { width: 100%; height: 100%; background: var(--panel-2); font: inherit; }
+    :root[data-theme="dark"] .xq-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.82) contrast(.92) saturate(.7); }
+    .xq-map .leaflet-tooltip { background: var(--panel-2); color: var(--text-1); border: 0; box-shadow: 0 0 0 1px var(--line-2), 0 8px 20px rgba(0,0,0,.3); border-radius: 9px; padding: 6px 9px; font-size: 12px; }
+    .xq-map .leaflet-tooltip::before { display: none; }
+    .xq-map .leaflet-control-zoom a { background: var(--panel); color: var(--text-1); border-color: var(--line); }
+    .xq-map .leaflet-control-attribution { background: color-mix(in srgb, var(--panel) 80%, transparent); color: var(--text-3); font-size: 10px; }
+    .xq-map .leaflet-control-attribution a { color: var(--text-2); }
+    .xq-legend { background: var(--panel); color: var(--text-2); padding: 8px 10px; border-radius: 10px; box-shadow: var(--shadow); font-size: 11.5px; line-height: 1.7; }
+    .xq-legend b { display: block; color: var(--text-1); font-size: 12px; margin-bottom: 2px; }
+    .xq-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+    .xq-search { padding: 6px 10px; border-radius: 9px; border: 1px solid var(--line-2); font: inherit; font-size: 13px; background: var(--panel); color: var(--text-1); width: 150px; }
+    .xq-note { margin-top: 10px; }
+    .xq-dist tr { cursor: pointer; }
+    .xq-dist tr:hover td { background: var(--hover); }
+    .xq-dist tr.on td { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+    @media (max-width: 640px) {
+      .xq-map { height: 58vh; }
+      .xq-search { width: 120px; }
+    }
+
     @media (max-width: 980px) {
       .layout { grid-template-columns: minmax(0,1fr); }
       .aside { position: static; }
@@ -276,6 +302,7 @@
         <button data-v="nation">全国</button>
         <button data-v="rank">排行</button>
         <button data-v="compare">对比</button>
+        <button data-v="map">杭州小区</button>
       </div>
       <div class="spacer"></div>
       <span class="updated" id="updated">加载中…</span>
@@ -291,6 +318,7 @@
       <section class="view" id="view-nation"></section>
       <section class="view" id="view-rank"></section>
       <section class="view" id="view-compare"></section>
+      <section class="view" id="view-map"></section>
     </main>
 
     <aside class="aside">
@@ -448,7 +476,7 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem('hp70.' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem('hp70.' + k, JSON.stringify(v)); } catch {} },
 };
-const VIEWS = ['city', 'nation', 'rank', 'compare'];
+const VIEWS = ['city', 'nation', 'rank', 'compare', 'map'];
 const KIND = { new: '新建商品住宅', used: '二手住宅' };
 const SIZE = ['90㎡ 以下', '90–144㎡', '144㎡ 以上'];
 
@@ -483,7 +511,7 @@ function cityStats(city, kind) {
 }
 
 // ── SVG 折线图 ──
-function lineChart(el, series, { base = null } = {}) {
+function lineChart(el, series, { base = null, dots = false } = {}) {
   // 按容器实际宽度画，手机上坐标文字不会被压缩
   const W = Math.max(300, Math.round(el.clientWidth - 32) || 760), H = W < 500 ? 220 : 260, P = { l: 40, r: 12, t: 10, b: 24 };
   const all = series.flatMap(s => s.points.map(p => p[1]).filter(v => v != null)).concat(base != null ? [base] : []);
@@ -499,7 +527,9 @@ function lineChart(el, series, { base = null } = {}) {
     let d = '', pen = false;
     s.points.forEach((p, i) => { if (p[1] == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${x(i).toFixed(1)},${y(p[1]).toFixed(1)}`; pen = true; });
     const lastI = s.points.map(p => p[1] != null).lastIndexOf(true);
-    return `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linejoin="round"/>` + (lastI >= 0 ? `<circle cx="${x(lastI)}" cy="${y(s.points[lastI][1])}" r="3.5" fill="${s.color}"/>` : '');
+    // dots：每个数据点画圆点（数据有断档时，前后都没数据的孤立点也看得见）
+    const pts = dots ? s.points.map((p, i) => p[1] == null || i === lastI ? '' : `<circle cx="${x(i).toFixed(1)}" cy="${y(p[1]).toFixed(1)}" r="2.6" fill="${s.color}"/>`).join('') : '';
+    return `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linejoin="round"/>` + pts + (lastI >= 0 ? `<circle cx="${x(lastI)}" cy="${y(s.points[lastI][1])}" r="3.5" fill="${s.color}"/>` : '');
   }).join('');
   el.innerHTML = `<div class="legend">${series.map(s => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('')}</div>
     <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${g}${paths}<line class="cur" x1="0" x2="0" y1="${P.t}" y2="${H - P.b}" stroke="var(--line-2)" visibility="hidden"/></svg><div class="tip"></div>`;
@@ -705,12 +735,194 @@ KIT.item('month', m => {
     acts: [{ text: '统计局原文 ↗', href: M.url }] };
 });
 
+// ── 杭州小区地图（xiaoqu.json：杭州网「二手房价涨跌榜」配图识别 + 高德坐标）──
+let XQ = null, XM = [], XQLOAD = null, MAP = null, XLAYER = null, XLEGEND = null, XMARK = {};
+const xs = {
+  month: null, dist: store.get('xqDist', ''), mode: store.get('xqMode', 'price'),
+  sort: 'price', dir: -1, q: '', limit: 60,
+};
+const xkey = it => it.d + '|' + it.n;
+const wan = v => v == null ? '—' : (v / 1e4).toFixed(v >= 1e5 ? 1 : 2) + ' 万';
+const yuan = v => v == null ? '—' : v.toLocaleString('zh-CN');
+const PRICE_BINS = [[15000, '1.5 万以下'], [25000, '1.5–2.5 万'], [35000, '2.5–3.5 万'], [50000, '3.5–5 万'], [70000, '5–7 万'], [Infinity, '7 万以上']];
+const PRICE_COL = ['#a5d8ff', '#4dabf7', '#3b5bdb', '#7048e8', '#ae3ec9', '#e64980'];
+const PCT_BINS = [[-5, '跌 5% 以上'], [-2, '跌 2–5%'], [0, '跌 0–2%'], [2, '涨 0–2%'], [5, '涨 2–5%'], [Infinity, '涨 5% 以上']];
+const PCT_COL = ['#0ca678', '#38d9a9', '#96f2d7', '#ffc9c9', '#ff6b6b', '#e03131'];
+const binOf = (bins, v) => bins.findIndex(b => v < b[0]);
+const colorOf = (it, m) => {
+  const r = it.p[m]; if (!r) return '#adb5bd';
+  if (xs.mode === 'pct') return r[2] == null ? '#adb5bd' : PCT_COL[binOf(PCT_BINS, r[2] === 0 ? -0.0001 : r[2])];
+  return PRICE_COL[binOf(PRICE_BINS, r[0])];
+};
+// 每月均价序列：当月没上榜、但下个月的表里有「上月均价」时用它补上
+function xqSeries(it) {
+  const all = [];
+  if (!XM.length) return all;
+  let [y, mo] = XM[0].split('-').map(Number);
+  const end = XM.at(-1);
+  for (;;) { const m = `${y}-${String(mo).padStart(2, '0')}`; all.push(m); if (m === end) break; if (++mo > 12) { mo = 1; y++; } }
+  return all.map((m, i) => { const nx = all[i + 1]; const v = it.p[m]?.[0] ?? (nx && it.p[nx]?.[1]) ?? null; return [m, v == null ? null : +(v / 1e4).toFixed(2)]; });
+}
+function loadXQ() {
+  if (XQLOAD) return XQLOAD;
+  const css = document.createElement('link');
+  css.rel = 'stylesheet'; css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+  document.head.appendChild(css);
+  const js = new Promise((ok, bad) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'; s.onload = ok; s.onerror = bad; document.head.appendChild(s); });
+  XQLOAD = Promise.all([js, fetch('xiaoqu.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.json())]).then(([, d]) => {
+    XQ = d; XM = Object.keys(d.months).sort(); xs.month = XM.at(-1);
+    if (state.view === 'map') renderMap();
+    KIT.boot();
+  }).catch(err => { XQLOAD = null; $('#view-map').innerHTML = `<div class="panel empty">小区数据读取失败：${esc(err.message || err)}</div>`; });
+  return XQLOAD;
+}
+function xqFiltered() {
+  const m = xs.month, q = xs.q.trim();
+  return XQ.items.filter(it => it.p[m] && (!xs.dist || it.d === xs.dist) && (!q || it.n.includes(q)));
+}
+function renderMap() {
+  const box = $('#view-map');
+  if (!XQ) { box.innerHTML = '<div class="panel empty">正在读取杭州小区数据…</div>'; loadXQ(); return; }
+  if (!box.querySelector('#xqMap')) {
+    const dists = [...new Set(XQ.items.map(it => it.d))].sort();
+    box.innerHTML = `<div class="filters">
+        <select class="sel" id="xqMonth">${XM.slice().reverse().map(m => `<option value="${m}">${mlabel(m)}</option>`).join('')}</select>
+        <select class="sel" id="xqDist"><option value="">全部区县</option>${dists.map(d => `<option>${esc(d)}</option>`).join('')}</select>
+        <div class="seg" id="xqMode"><button data-xm="price">按均价着色</button><button data-xm="pct">按环比着色</button></div>
+        <input class="xq-search" id="xqQ" type="search" placeholder="搜小区名">
+      </div>
+      <div class="panel xq-hero" id="xqHero"></div>
+      <div class="xq-map"><div id="xqMap" style="height:100%"></div></div>
+      <p class="muted xq-note" id="xqNote"></p>
+      <div class="section-title">各区县<small>点一行只看这个区县</small></div>
+      <div class="panel wrap"><table class="t xq-dist"><thead><tr><th>区县</th><th>成交活跃小区</th><th>均价中位数</th><th>上涨</th><th>下跌</th><th>最高</th></tr></thead><tbody id="xqDistT"></tbody></table></div>
+      <div class="section-title" id="xqListTitle">小区</div>
+      <div class="panel wrap"><table class="t"><thead><tr><th data-xs="n" class="sort">小区</th><th data-xs="price" class="sort">成交均价</th><th data-xs="prev" class="sort">上月</th><th data-xs="pct" class="sort">环比</th></tr></thead><tbody id="xqList"></tbody></table></div>
+      <button class="kit-more" id="xqMore" style="display:none">显示更多</button>`;
+    MAP = L.map('xqMap', { preferCanvas: true, attributionControl: true }).setView([30.27, 120.17], 11);
+    L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+      { subdomains: '1234', maxZoom: 18, attribution: '底图 © 高德地图' }).addTo(MAP);
+    XLAYER = L.layerGroup().addTo(MAP);
+    XLEGEND = L.control({ position: 'bottomleft' });
+    XLEGEND.onAdd = () => L.DomUtil.create('div', 'xq-legend');
+    XLEGEND.addTo(MAP);
+    $('#xqMonth').onchange = e => { xs.month = e.target.value; xs.limit = 60; updateMap(); };
+    $('#xqDist').onchange = e => { xs.dist = e.target.value; store.set('xqDist', xs.dist); xs.limit = 60; updateMap(true); };
+    $('#xqQ').oninput = e => { xs.q = e.target.value; xs.limit = 60; updateMap(); };
+    $('#xqMore').onclick = () => { xs.limit += 120; updateList(); };
+    box.addEventListener('click', e => {
+      let b;
+      if ((b = e.target.closest('[data-xm]'))) { xs.mode = b.dataset.xm; store.set('xqMode', xs.mode); updateMap(); }
+      else if ((b = e.target.closest('[data-xs]'))) { const s = b.dataset.xs; xs.dir = xs.sort === s ? -xs.dir : (s === 'n' ? 1 : -1); xs.sort = s; updateList(); }
+      else if ((b = e.target.closest('[data-xd]'))) { xs.dist = xs.dist === b.dataset.xd ? '' : b.dataset.xd; store.set('xqDist', xs.dist); $('#xqDist').value = xs.dist; xs.limit = 60; updateMap(true); }
+    });
+    updateMap(!!xs.dist);
+  }
+  $('#xqMonth').value = xs.month; $('#xqDist').value = xs.dist;
+  setTimeout(() => MAP && MAP.invalidateSize());
+}
+function updateMap(fit) {
+  const m = xs.month, list = xqFiltered();
+  document.querySelectorAll('#xqMode button').forEach(b => b.classList.toggle('active', b.dataset.xm === xs.mode));
+  // 概况
+  const prices = list.map(it => it.p[m][0]).sort((a, b) => a - b), pcts = list.map(it => it.p[m][2]).filter(v => v != null);
+  const med = a => a.length ? a[Math.floor(a.length / 2)] : null;
+  const up = pcts.filter(v => v > 0).length, dn = pcts.filter(v => v < 0).length;
+  $('#xqHero').innerHTML = `<div class="stat"><div class="k">${mlabel(m)} · ${esc(xs.dist || '杭州')}</div><div class="v num">${list.length}<small class="muted"> 个成交活跃小区</small></div></div>
+    <div class="stat"><div class="k">成交均价中位数</div><div class="v num">${wan(med(prices))}<small class="muted">/㎡</small></div></div>
+    <div class="stat"><div class="k">环比上涨 / 下跌</div><div class="v num"><span class="up">${pcts.length ? Math.round(up / pcts.length * 100) : 0}%</span> / <span class="down">${pcts.length ? Math.round(dn / pcts.length * 100) : 0}%</span></div></div>
+    <div class="stat"><div class="k">最高</div><div class="v num">${prices.length ? wan(prices.at(-1)) : '—'}</div></div>`;
+  // 地图点
+  XLAYER.clearLayers(); XMARK = {};
+  const pts = [];
+  list.forEach(it => {
+    if (!it.loc) return;
+    const ll = [it.loc[1], it.loc[0]], r = it.p[m];
+    pts.push(ll);
+    XMARK[xkey(it)] = L.circleMarker(ll, { radius: 6, weight: 1, color: 'rgba(0,0,0,.35)', fillColor: colorOf(it, m), fillOpacity: .9 })
+      .bindTooltip(`<b>${esc(it.n)}</b><br>${yuan(r[0])} 元/㎡${r[2] != null ? ` · <span class="${cls(r[2])}">${pct(r[2])}</span>` : ''}<br><span class="muted">${esc(it.d)}</span>`, { direction: 'top', offset: [0, -6] })
+      .on('click', () => KIT.open('xq/' + encodeURIComponent(xkey(it))))
+      .addTo(XLAYER);
+  });
+  if (fit && pts.length) MAP.fitBounds(pts, { padding: [24, 24], maxZoom: 14 });
+  else if (fit) MAP.setView([30.27, 120.17], 11);
+  const [bins, cols, title] = xs.mode === 'pct' ? [PCT_BINS, PCT_COL, '环比（比上月）'] : [PRICE_BINS, PRICE_COL, '成交均价（元/㎡）'];
+  XLEGEND.getContainer().innerHTML = `<b>${title}</b>${bins.map((b, i) => `<div><i style="background:${cols[i]}"></i>${b[1]}</div>`).join('')}${xs.mode === 'pct' ? '<div><i style="background:#adb5bd"></i>无上月数据</div>' : ''}`;
+  const miss = list.length - pts.length, M = XQ.months[m];
+  $('#xqNote').innerHTML = `${miss ? `${miss} 个小区没查到准确位置，只在下方列表里显示。` : ''}数据：${esc(XQ.source)}，${mlabel(m)}成交均价，<a href="${esc(M.url)}" target="_blank" rel="noopener" style="text-decoration:underline">杭州网 ${esc(M.published)} 原文</a>。只含当月成交活跃的小区；单个小区的均价受当月成交房源（户型、楼层、装修）影响，波动会比较大。`;
+  // 区县表（不受区县筛选影响）
+  const byD = {};
+  XQ.items.forEach(it => { const r = it.p[m]; if (r) (byD[it.d] = byD[it.d] || []).push(r); });
+  $('#xqDistT').innerHTML = Object.entries(byD).map(([d, rs]) => {
+    const ps = rs.map(r => r[0]).sort((a, b) => a - b), cs = rs.map(r => r[2]).filter(v => v != null);
+    return { d, n: rs.length, med: med(ps), max: ps.at(-1), up: cs.length ? cs.filter(v => v > 0).length / cs.length : 0, dn: cs.length ? cs.filter(v => v < 0).length / cs.length : 0 };
+  }).sort((a, b) => b.med - a.med).map(r => `<tr data-xd="${esc(r.d)}" class="${r.d === xs.dist ? 'on' : ''}"><td class="c">${esc(r.d)}</td><td>${r.n}</td><td>${wan(r.med)}</td>
+    <td class="up">${Math.round(r.up * 100)}%</td><td class="down">${Math.round(r.dn * 100)}%</td><td>${wan(r.max)}</td></tr>`).join('');
+  updateList();
+}
+function updateList() {
+  const m = xs.month, val = it => ({ n: it.n, price: it.p[m][0], prev: it.p[m][1], pct: it.p[m][2] })[xs.sort];
+  const list = xqFiltered().sort((a, b) => {
+    const va = val(a), vb = val(b);
+    if (va == null) return 1; if (vb == null) return -1;
+    return (typeof va === 'string' ? va.localeCompare(vb, 'zh') : va - vb) * xs.dir;
+  });
+  document.querySelectorAll('[data-xs]').forEach(th => { th.classList.toggle('on', th.dataset.xs === xs.sort); th.textContent = th.textContent.replace(/ [↑↓]$/, '') + (th.dataset.xs === xs.sort ? (xs.dir > 0 ? ' ↑' : ' ↓') : ''); });
+  $('#xqListTitle').innerHTML = `小区<small>${list.length} 个 · 点表头排序，点小区看历月均价</small>`;
+  $('#xqList').innerHTML = list.slice(0, xs.limit).map(it => { const r = it.p[m]; return `<tr data-kit-item="xq/${encodeURIComponent(xkey(it))}"><td class="c">${esc(it.n)}<small>${esc(it.d)}${it.loc ? '' : ' · 未定位'}</small></td>
+    <td>${yuan(r[0])}</td><td>${yuan(r[1])}</td><td class="${cls(r[2])}">${pct(r[2])}</td></tr>`; }).join('') || '<tr><td colspan="4" class="empty">没有符合条件的小区</td></tr>';
+  $('#xqMore').style.display = list.length > xs.limit ? 'block' : 'none';
+}
+function showOnMap(it) {
+  const fly = () => {
+    renderMap();
+    // 当前月份 / 区县筛选里没有这个小区时，切到它最近上榜的月份、清掉区县和搜索，保证地图上有这个点
+    if (!XMARK[xkey(it)]) {
+      xs.month = Object.keys(it.p).sort().at(-1); xs.dist = ''; xs.q = '';
+      $('#xqMonth').value = xs.month; $('#xqDist').value = ''; $('#xqQ').value = ''; updateMap();
+    }
+    setTimeout(() => {
+      MAP.invalidateSize(); MAP.flyTo([it.loc[1], it.loc[0]], 16, { duration: .8 });
+      MAP.once('moveend', () => XMARK[xkey(it)]?.openTooltip());
+    }, 60);
+  };
+  const h = () => { state.view = 'map'; history.replaceState(null, '', '#map'); render(); fly(); };
+  addEventListener('hashchange', h, { once: true });
+  KIT.close();
+  if (KIT.parse()?.kind !== 'item') { removeEventListener('hashchange', h); h(); }
+}
+KIT.item('xq', key => {
+  if (!XQ) { loadXQ(); return { small: true, title: '正在读取小区数据…', thumbIcon: '🏘️' }; }
+  const it = XQ.items.find(x => xkey(x) === key);
+  if (!it) return null;
+  const ms = Object.keys(it.p).sort(), last = ms.at(-1), r = it.p[last];
+  const ly = `${+last.slice(0, 4) - 1}${last.slice(4)}`, yoy = it.p[ly] ? +((r[0] / it.p[ly][0] - 1) * 100).toFixed(1) : null;
+  const rows = ms.slice().reverse().map(m => { const x = it.p[m]; return `<tr><td>${mlabel(m)}</td><td>${yuan(x[0])}</td><td>${yuan(x[1])}</td><td class="${cls(x[2])}">${pct(x[2])}</td></tr>`; }).join('');
+  // 同区县、均价最接近的小区
+  const near = XQ.items.filter(x => x !== it && x.d === it.d && x.p[last]).sort((a, b) => Math.abs(a.p[last][0] - r[0]) - Math.abs(b.p[last][0] - r[0])).slice(0, 6);
+  const ser = xqSeries(it);
+  if (ser.filter(p => p[1] != null).length > 1) setTimeout(() => { const el = document.getElementById('kitXqChart'); if (el) lineChart(el, [{ name: '成交均价（万元/㎡）', color: 'var(--s2)', points: ser }], { dots: true }); });
+  return { title: it.n, sub: `${esc(it.d)} · 杭州 · 最近上榜 ${mlabel(last)}`, thumbIcon: '🏘️', thumbBg: 'color-mix(in srgb, var(--s2) 22%, transparent)',
+    tags: [`<span>上榜 ${ms.length} 期</span>`, it.loc ? '' : '<span>未定位</span>'],
+    big: `<b class="num">${yuan(r[0])}</b><span class="muted">元/㎡ · ${mlabel(last)}成交均价${r[2] != null ? ` · 环比 <span class="${cls(r[2])}">${pct(r[2])}</span>` : ''}</span>`,
+    body: KIT.sec('最近一期', kvc([['成交均价', yuan(r[0])], ['上月', yuan(r[1])], ['环比', pct(r[2]), cls(r[2])], ['同比', yoy == null ? '—' : pct(yoy), cls(yoy)]]))
+      + (ser.filter(p => p[1] != null).length > 1 ? KIT.sec('均价走势', `<div class="chart" id="kitXqChart"></div>`, '没上榜的月份用下一期表里的「上月均价」补') : '')
+      + KIT.sec('各期数据', `<div class="wrap"><table class="t"><thead><tr><th>月份</th><th>成交均价</th><th>上月</th><th>环比</th></tr></thead><tbody>${rows}</tbody></table></div>`, '元/㎡')
+      + (near.length ? KIT.sec(`${esc(it.d)}均价相近的小区`, `<div class="kit-rows">${near.map(x => `<div class="kit-row" data-kit-go="xq/${encodeURIComponent(xkey(x))}"><span class="kit-rt">${esc(x.n)}</span>
+          <span class="kit-rm">${yuan(x.p[last][0])} · <span class="${cls(x.p[last][2])}">${pct(x.p[last][2])}</span></span></div>`).join('')}</div>`, mlabel(last)) : '')
+      + KIT.p('数据来自潮新闻美好生活研究院每月「杭州二手房价涨跌榜」（杭州网刊登，数据来源中指研究院），由表格图片自动识别，个别数字可能有误，请以原文为准。'),
+    acts: [it.loc ? { text: '在地图上看', pri: true, onclick: () => showOnMap(it) } : null,
+      { text: '高德地图 ↗', href: it.loc ? `https://uri.amap.com/marker?position=${it.loc[0]},${it.loc[1]}&name=${encodeURIComponent(it.n)}&coordinate=gaode` : `https://uri.amap.com/search?keyword=${encodeURIComponent('杭州 ' + it.n)}` },
+      { text: '原文 ↗', href: XQ.months[last].url }] };
+});
+
 function render() {
   const hv = location.hash.slice(1);                          // 单段 hash 视图（#city 等）；#/item/ 由 kit 处理
   if (VIEWS.includes(hv)) state.view = hv;
   document.querySelectorAll('#viewSeg button').forEach(b => b.classList.toggle('active', b.dataset.v === state.view));
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + state.view));
-  ({ city: renderCity, nation: renderNation, rank: renderRank, compare: renderCompare })[state.view]();
+  document.body.classList.toggle('mapmode', state.view === 'map');
+  ({ city: renderCity, nation: renderNation, rank: renderRank, compare: renderCompare, map: renderMap })[state.view]();
   renderAside();
 }
 function go(view) { state.view = view; store.set('view', view); history.replaceState(null, '', '#' + view); render(); scrollTo(0, 0); }

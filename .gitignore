@@ -1,2 +1,5 @@
 .DS_Store
 __pycache__/
+.amap_key
+.cache/
+.ocr_bin
