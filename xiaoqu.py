@@ -314,6 +314,86 @@ def merge_aliases(items):
                     break
 
 
+MARKET = ROOT / "hz_market.json"
+
+
+def dump_market(d):
+    """hz_market.json 每条排行占一行，方便手动维护和看 diff"""
+    lines = ["{"]
+    head = [k for k in d if k != "months"]
+    for k in head:
+        lines.append(f'  {json.dumps(k, ensure_ascii=False)}: {json.dumps(d[k], ensure_ascii=False)},')
+    lines.append('  "months": {')
+    ms = sorted(d["months"])
+    for i, m in enumerate(ms):
+        v = d["months"][m]
+        base = {k: x for k, x in v.items() if k != "top"}
+        if "top" not in v:
+            lines.append(f'    "{m}": {json.dumps(base, ensure_ascii=False)}' + ("," if i < len(ms) - 1 else ""))
+            continue
+        t = v["top"]
+        lines.append(f'    "{m}": {json.dumps(base, ensure_ascii=False)[:-1]}, "top": {{')
+        lines.append(f'      "src": {json.dumps(t["src"], ensure_ascii=False)}, "url": {json.dumps(t["url"])}, "partial": {json.dumps(t.get("partial", False))}, "rows": [')
+        rows = t["rows"]
+        lines += [f'        {json.dumps(r, ensure_ascii=False)}' + ("," if j < len(rows) - 1 else "") for j, r in enumerate(rows)]
+        lines.append("      ] } }" + ("," if i < len(ms) - 1 else ""))
+    lines += ["  }", "}"]
+    MARKET.write_text("\n".join(lines) + "\n")
+
+
+def match_market_top(items, fix):
+    """hz_market.json 各月成交排行里的小区 → xiaoqu.json 的小区键（rows 第 6 列）。
+    同区县内：规范化后同名 > 一方包含另一方 > 最长公共子串 ≥ 3 且占短名 ≥ 60%，并且唯一；
+    xiaoqu_fix.json 的 top 可手动指定（值为 "区县|小区"，空字符串 = 不匹配）"""
+    d = load(MARKET, None)
+    if not d:
+        return
+    manual = fix.get("top", {})
+    norm = lambda s: re.sub(r"[·・\s]|杭州|小区$", "", s)
+    def lcs(a, b):
+        best = 0
+        for i in range(len(a)):
+            for j in range(i + best + 1, len(a) + 1):
+                if a[i:j] in b:
+                    best = j - i
+                else:
+                    break
+        return best
+    by_d = {}
+    for k, it in items.items():
+        by_d.setdefault(it["d"], []).append((norm(it["n"]), k))
+    miss = []
+    for m, v in d["months"].items():
+        for r in v.get("top", {}).get("rows", []):
+            name, dist = r[1], r[2]
+            mk = f"{dist}|{name}"
+            if mk in manual:
+                key = manual[mk] or None
+            else:
+                n, cands = norm(name), by_d.get(dist, [])
+                key = next((k for nn, k in cands if nn == n), None)
+                if not key:
+                    hits = [k for nn, k in cands if len(min(nn, n, key=len)) >= 3 and (nn in n or n in nn)]
+                    if not hits:
+                        hits = [k for nn, k in cands if lcs(n, nn) >= 3 and lcs(n, nn) >= 0.6 * min(len(n), len(nn))]
+                    key = hits[0] if len(hits) == 1 else None
+                    if len(hits) > 1:
+                        miss.append(f"{m} {mk} 多个候选：{'、'.join(h.split('|')[1] for h in hits)}")
+                if not key and not cands or not key and not any(nn == n or nn in n or n in nn for nn, _ in cands):
+                    # 同区县没有候选：跨区县找（申花等交界板块，两家机构划的区县不同），只认同名或唯一包含
+                    allc = [(nn, k) for lst_ in by_d.values() for nn, k in lst_]
+                    hits = [k for nn, k in allc if nn == n] or [k for nn, k in allc if len(min(nn, n, key=len)) >= 4 and (nn in n or n in nn)]
+                    key = hits[0] if len(hits) == 1 else None
+            r[5:] = [key]
+            if not key and mk not in manual:
+                miss.append(f"{m} {mk} 没匹配到")
+    dump_market(d)
+    n = sum(1 for v in d["months"].values() for r in v.get("top", {}).get("rows", []))
+    ok = sum(1 for v in d["months"].values() for r in v.get("top", {}).get("rows", []) if r[5])
+    print(f"成交排行：{ok}/{n} 行匹配到地图小区" + (f"，未匹配 {len(miss)} 行 → .cache/xiaoqu/top_miss.txt" if miss else ""))
+    (CACHE / "top_miss.txt").write_text("\n".join(miss))
+
+
 # ── 主流程 ──────────────────────────────────────
 def main(new_urls):
     old = load(OUT, {})
@@ -405,6 +485,7 @@ def main(new_urls):
         "articles": [{k: a[k] for k in ("id", "url", "published", "title", "month", "images") if k in a} for a in articles.values()],
     }
     OUT.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
+    match_market_top({f"{it['d']}|{it['n']}": it for it in lst}, fix)
     (CACHE / "review.txt").write_text("\n".join(review))
     print(f"小区 {len(lst)} 个，有坐标 {out['geo']['ok']}，未定位 {out['geo']['miss']}；待核对 {len(review)} 行 → .cache/xiaoqu/review.txt")
     if err:
